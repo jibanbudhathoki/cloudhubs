@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using MyDevPlatform.Domain.Organizations;
@@ -97,5 +98,104 @@ public sealed class SuperuserCredentialValidator(
         }
 
         return user;
+    }
+
+    public async Task<string?> GetSuperuserEmailAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        var user = await dbContext.Users.AsNoTracking().SingleOrDefaultAsync(
+            candidate => candidate.Id == userId && candidate.Role == UserRole.Superuser,
+            cancellationToken);
+        return user?.Email;
+    }
+
+    public async Task<bool> UpdateAccountAsync(
+        Guid userId,
+        string currentPassword,
+        string? newEmail,
+        string? newPassword,
+        string? confirmNewPassword,
+        CancellationToken cancellationToken = default)
+    {
+        var user = await dbContext.Users.SingleOrDefaultAsync(
+            candidate => candidate.Id == userId && candidate.Role == UserRole.Superuser && candidate.IsActive,
+            cancellationToken)
+            ?? throw new InvalidOperationException("The active Superadmin account could not be found.");
+
+        if (string.IsNullOrEmpty(user.PasswordHash))
+        {
+            throw new UnauthorizedAccessException("The current password is incorrect.");
+        }
+
+        var passwordVerification = passwordHasher.VerifyHashedPassword(user, user.PasswordHash, currentPassword);
+        if (passwordVerification == PasswordVerificationResult.Failed)
+        {
+            throw new UnauthorizedAccessException("The current password is incorrect.");
+        }
+
+        var normalizedEmail = string.IsNullOrWhiteSpace(newEmail) ? null : newEmail.Trim();
+        if (normalizedEmail is not null)
+        {
+            if (normalizedEmail.Length > 200 || !new EmailAddressAttribute().IsValid(normalizedEmail))
+            {
+                throw new ArgumentException("Enter a valid email address of 200 characters or fewer.", nameof(newEmail));
+            }
+
+            var normalizedEmailLower = normalizedEmail.ToLowerInvariant();
+            var conflictsWithUser = await dbContext.Users.AnyAsync(
+                candidate => candidate.Id != userId
+                    && (candidate.Email != null && candidate.Email.ToLower() == normalizedEmailLower
+                        || candidate.LoginId != null && candidate.LoginId.ToLower() == normalizedEmailLower),
+                cancellationToken);
+            if (conflictsWithUser)
+            {
+                throw new InvalidOperationException("That email address is already in use.");
+            }
+        }
+
+        var emailChanged = normalizedEmail is not null
+            && !string.Equals(user.Email, normalizedEmail, StringComparison.OrdinalIgnoreCase);
+        var passwordChanged = !string.IsNullOrEmpty(newPassword);
+        if (!emailChanged && !passwordChanged)
+        {
+            throw new ArgumentException("Enter a new email address, a new password, or both.");
+        }
+
+        if (passwordChanged)
+        {
+            if (!string.Equals(newPassword, confirmNewPassword, StringComparison.Ordinal))
+            {
+                throw new ArgumentException("The new password and confirmation do not match.", nameof(confirmNewPassword));
+            }
+
+            var settings = await dbContext.PlatformSettings.SingleOrDefaultAsync(
+                item => item.Id == PlatformSettings.SingletonId,
+                cancellationToken) ?? new PlatformSettings();
+            if (newPassword!.Length < settings.MinimumPasswordLength)
+            {
+                throw new ArgumentException(
+                    $"The new password must be at least {settings.MinimumPasswordLength} characters long.",
+                    nameof(newPassword));
+            }
+
+            if (settings.RequirePasswordDigit && !newPassword.Any(char.IsAsciiDigit))
+            {
+                throw new ArgumentException("The new password must contain at least one digit.", nameof(newPassword));
+            }
+
+            user.PasswordHash = passwordHasher.HashPassword(user, newPassword);
+        }
+        else if (passwordVerification == PasswordVerificationResult.SuccessRehashNeeded)
+        {
+            user.PasswordHash = passwordHasher.HashPassword(user, currentPassword);
+        }
+
+        if (emailChanged)
+        {
+            user.Email = normalizedEmail;
+        }
+
+        user.UpdatedAt = DateTime.UtcNow;
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return passwordChanged;
     }
 }

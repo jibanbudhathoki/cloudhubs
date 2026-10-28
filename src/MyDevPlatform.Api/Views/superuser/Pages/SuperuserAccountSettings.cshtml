@@ -1,0 +1,55 @@
+@model SuperuserAccountChangeViewModel
+@{
+    Layout = "~/Views/superuser/Shared/_Layout.cshtml";
+    ViewData["Section"] = "Settings";
+}
+
+<section class="page-heading">
+    <div>
+        <p class="eyebrow">CONTROL PLANE / SETTINGS / SECURITY</p>
+        <h1>Superadmin account</h1>
+        <p>Update the account email, password, or both. Your login ID remains unchanged.</p>
+    </div>
+    <a class="btn btn-outline-secondary" href="/su/settings/security">Back to security settings</a>
+</section>
+
+<form class="surface admin-form settings-section-form" method="post" action="/su/settings/security/account">
+    @Html.AntiForgeryToken()
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div class="alert alert-danger" asp-validation-summary="All" role="alert"></div>
+    }
+
+    <div class="mb-3">
+        <label class="form-label">Current account email</label>
+        <input class="form-control" value="@(ViewData["SuperuserEmail"] ?? "Not set")" readonly />
+    </div>
+    <div class="mb-3">
+        <label class="form-label" asp-for="NewEmail">New account email</label>
+        <input class="form-control" asp-for="NewEmail" type="email" autocomplete="email" />
+        <span class="form-text">Leave blank to keep the current email.</span>
+        <span class="text-danger" asp-validation-for="NewEmail"></span>
+    </div>
+    <hr />
+    <div class="mb-3">
+        <label class="form-label" asp-for="CurrentPassword">Current password</label>
+        <input class="form-control" asp-for="CurrentPassword" autocomplete="current-password" required />
+        <span class="text-danger" asp-validation-for="CurrentPassword"></span>
+    </div>
+    <div class="mb-3">
+        <label class="form-label" asp-for="NewPassword">New password</label>
+        <input class="form-control" asp-for="NewPassword" autocomplete="new-password" />
+        <span class="form-text">Leave blank to keep the current password. The configured minimum length and digit requirement apply.</span>
+        <span class="text-danger" asp-validation-for="NewPassword"></span>
+    </div>
+    <div class="mb-3">
+        <label class="form-label" asp-for="ConfirmNewPassword">Confirm new password</label>
+        <input class="form-control" asp-for="ConfirmNewPassword" autocomplete="new-password" />
+        <span class="text-danger" asp-validation-for="ConfirmNewPassword"></span>
+    </div>
+    <div class="alert alert-info" role="note">Changing the email updates the account contact email; it does not change your login ID. After a password change, you will be signed out and must sign in again.</div>
+    <div class="form-actions mt-4">
+        <a class="btn btn-outline-secondary" href="/su/settings/security">Cancel</a>
+        <button class="btn btn-success" type="submit">Update account</button>
+    </div>
+</form>

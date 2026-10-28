@@ -1,5 +1,7 @@
 @{
     var activeSection = ViewData["Section"] as string ?? "Overview";
+    var supportEmail = ViewData["PlatformSupportEmail"] as string;
+    var publicUrl = ViewData["PlatformPublicUrl"] as string;
 }
 <a class="brand" href="/su/">
     <span class="brand-mark">M</span>
@@ -20,7 +22,17 @@
 <div class="sidebar-spacer"></div>
 <div class="system-card">
     <span class="system-dot"></span>
-    <span>Platform administration</span>
+    <span class="system-links">
+        <span>Platform administration</span>
+        @if (!string.IsNullOrWhiteSpace(supportEmail))
+        {
+            <a href="mailto:@supportEmail">Contact support</a>
+        }
+        @if (!string.IsNullOrWhiteSpace(publicUrl))
+        {
+            <a href="@publicUrl" target="_blank" rel="noopener noreferrer">Visit platform</a>
+        }
+    </span>
 </div>
 <form class="sign-out-form" method="post" action="/su/logout">
     @Html.AntiForgeryToken()

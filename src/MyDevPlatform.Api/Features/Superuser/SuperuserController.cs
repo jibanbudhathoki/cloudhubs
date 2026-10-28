@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -16,6 +17,31 @@ public class SuperuserController : Controller
     private readonly ILogger<SuperuserController> _logger;
     private readonly SuperuserCredentialValidator _credentialValidator;
     private readonly PlatformSettingsService _platformSettingsService;
+
+    private static readonly string[] SettingSections =
+        ["profile", "security", "organizations", "catalog", "billing", "notifications"];
+
+    private static readonly IReadOnlyDictionary<string, string> SettingSectionTitles =
+        new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["profile"] = "Platform profile",
+            ["security"] = "Security",
+            ["organizations"] = "Organization defaults",
+            ["catalog"] = "Catalog defaults",
+            ["billing"] = "Billing defaults",
+            ["notifications"] = "Notifications"
+        };
+
+    private static readonly IReadOnlyDictionary<string, string[]> SettingSectionFields =
+        new Dictionary<string, string[]>(StringComparer.Ordinal)
+        {
+            ["profile"] = ["PlatformName", "SupportEmail", "PublicUrl"],
+            ["security"] = ["SessionTimeoutMinutes", "JwtLifetimeMinutes", "MinimumPasswordLength", "RequirePasswordDigit"],
+            ["organizations"] = ["AllowOrganizationCreation", "DefaultOrganizationStatus", "DefaultTrialDays"],
+            ["catalog"] = ["DefaultTemplateId"],
+            ["billing"] = ["DefaultPlanName", "BillingCurrency", "MonthlyPrice"],
+            ["notifications"] = ["NotifyOnOrganizationCreated", "NotificationEmail"]
+        };
 
     public SuperuserController(
         OrganizationService organizationService,
@@ -37,20 +63,130 @@ public class SuperuserController : Controller
         return View("~/Views/superuser/Pages/Dashboard.cshtml", model);
     }
 
-    [HttpGet("settings")]
-    public async Task<IActionResult> Settings(CancellationToken cancellationToken)
+    [HttpGet("settings/{section?}")]
+    public async Task<IActionResult> Settings(string? section, CancellationToken cancellationToken)
     {
         ViewData["Section"] = "Settings";
-        ViewData["Title"] = "Settings";
+        if (section is not null && !SettingSections.Contains(section))
+        {
+            return NotFound();
+        }
+
+        ViewData["Title"] = section is null ? "Settings" : SettingSectionTitles[section];
+        ViewData["SettingsSection"] = section;
+        if (section == "security")
+        {
+            ViewData["SuperuserEmail"] = await _credentialValidator.GetSuperuserEmailAsync(GetCurrentSuperuserId(), cancellationToken);
+        }
+
         var settings = await _platformSettingsService.GetAsync(cancellationToken);
         return View("~/Views/superuser/Pages/Settings.cshtml", PlatformSettingsViewModel.From(settings));
     }
 
-    [HttpPost("settings")]
-    public async Task<IActionResult> Settings(PlatformSettingsViewModel model, CancellationToken cancellationToken)
+    [HttpGet("settings/security/account")]
+    public async Task<IActionResult> AccountSettings(CancellationToken cancellationToken)
     {
         ViewData["Section"] = "Settings";
-        ViewData["Title"] = "Settings";
+        ViewData["Title"] = "Superadmin account";
+        ViewData["SuperuserEmail"] = await _credentialValidator.GetSuperuserEmailAsync(GetCurrentSuperuserId(), cancellationToken);
+        return View("~/Views/superuser/Pages/SuperuserAccountSettings.cshtml", new SuperuserAccountChangeViewModel());
+    }
+
+    [HttpPost("settings/security/account")]
+    public async Task<IActionResult> SaveAccountSettings(
+        SuperuserAccountChangeViewModel model,
+        CancellationToken cancellationToken)
+    {
+        ViewData["Section"] = "Settings";
+        ViewData["Title"] = "Superadmin account";
+        var userId = GetCurrentSuperuserId();
+        ViewData["SuperuserEmail"] = await _credentialValidator.GetSuperuserEmailAsync(userId, cancellationToken);
+
+        if (!ModelState.IsValid)
+        {
+            return View("~/Views/superuser/Pages/SuperuserAccountSettings.cshtml", model);
+        }
+
+        try
+        {
+            var passwordChanged = await _credentialValidator.UpdateAccountAsync(
+                userId,
+                model.CurrentPassword,
+                model.NewEmail,
+                model.NewPassword,
+                model.ConfirmNewPassword,
+                cancellationToken);
+            TempData["Success"] = "Superadmin account updated.";
+            if (passwordChanged)
+            {
+                await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+                return RedirectToAction(nameof(Login));
+            }
+
+            return RedirectToAction(nameof(AccountSettings));
+        }
+        catch (UnauthorizedAccessException exception)
+        {
+            ModelState.AddModelError(nameof(model.CurrentPassword), exception.Message);
+        }
+        catch (ArgumentException exception)
+        {
+            ModelState.AddModelError(string.Empty, exception.Message);
+        }
+        catch (InvalidOperationException exception)
+        {
+            ModelState.AddModelError(string.Empty, exception.Message);
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Unable to update the Superadmin account.");
+            ModelState.AddModelError(string.Empty, "The Superadmin account could not be updated. Check the database connection and try again.");
+        }
+
+        return View("~/Views/superuser/Pages/SuperuserAccountSettings.cshtml", model);
+    }
+
+    [HttpPost("settings/{section}")]
+    public async Task<IActionResult> SaveSettings(string section, PlatformSettingsViewModel model, CancellationToken cancellationToken)
+    {
+        if (!SettingSections.Contains(section))
+        {
+            return NotFound();
+        }
+
+        ViewData["Section"] = "Settings";
+        ViewData["Title"] = SettingSectionTitles[section];
+        ViewData["SettingsSection"] = section;
+        if (!SettingSectionFields.TryGetValue(section, out var sectionFields))
+        {
+            return NotFound();
+        }
+
+        var preservedBindingErrors = new List<(string Key, string Message)>();
+        foreach (var entry in ModelState)
+        {
+            if (!sectionFields.Contains(entry.Key, StringComparer.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            foreach (var error in entry.Value.Errors)
+            {
+                if (error.Exception is not null)
+                {
+                    preservedBindingErrors.Add((entry.Key, error.Exception.Message));
+                }
+            }
+        }
+
+        ModelState.Clear();
+        foreach (var (key, message) in preservedBindingErrors)
+        {
+            ModelState.AddModelError(key, message);
+        }
+
+        ValidateSettingsSection(model, sectionFields);
+
         if (!ModelState.IsValid)
         {
             return View("~/Views/superuser/Pages/Settings.cshtml", model);
@@ -58,10 +194,13 @@ public class SuperuserController : Controller
 
         try
         {
-            await _platformSettingsService.UpdateAsync(model.ToSettings(), cancellationToken);
-            TempData["Success"] = "Platform settings saved.";
-            return RedirectToAction(nameof(Settings));
+            var settings = await _platformSettingsService.GetAsync(cancellationToken);
+            model.ApplySection(settings, section);
+            await _platformSettingsService.UpdateSectionAsync(settings, section, cancellationToken);
+            TempData["Success"] = $"{SettingSectionTitles[section]} settings saved.";
+            return RedirectToAction(nameof(Settings), new { section });
         }
+
         catch (ArgumentException exception)
         {
             ModelState.AddModelError(string.Empty, exception.Message);
@@ -73,6 +212,38 @@ public class SuperuserController : Controller
             ModelState.AddModelError(string.Empty, "Settings could not be saved. Check the database connection and try again.");
             return View("~/Views/superuser/Pages/Settings.cshtml", model);
         }
+    }
+
+    private void ValidateSettingsSection(PlatformSettingsViewModel model, IEnumerable<string> fields)
+    {
+        foreach (var field in fields)
+        {
+            var property = typeof(PlatformSettingsViewModel).GetProperty(field);
+            if (property is null)
+            {
+                throw new InvalidOperationException($"Settings field '{field}' is not defined on the view model.");
+            }
+
+            var validationResults = new List<ValidationResult>();
+            var validationContext = new ValidationContext(model) { MemberName = field };
+            Validator.TryValidateProperty(property.GetValue(model), validationContext, validationResults);
+            foreach (var validationResult in validationResults)
+            {
+                ModelState.AddModelError(field, validationResult.ErrorMessage ?? $"{field} is invalid.");
+            }
+        }
+
+    }
+
+    private Guid GetCurrentSuperuserId()
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!Guid.TryParse(userId, out var parsedUserId))
+        {
+            throw new InvalidOperationException("The authenticated Superadmin identity is invalid. Sign in again.");
+        }
+
+        return parsedUserId;
     }
 
     [AllowAnonymous]

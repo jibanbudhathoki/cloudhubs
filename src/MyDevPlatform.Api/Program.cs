@@ -35,7 +35,7 @@ var jwtAudience = builder.Configuration["Superuser:Jwt:Audience"] ?? "CloudHubs.
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
-        options.Cookie.Name = "MyDevPlatform.Superuser";
+        options.Cookie.Name = "CloudHubs.Superuser";
         options.Cookie.HttpOnly = true;
         options.Cookie.SameSite = SameSiteMode.Lax;
         options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
@@ -101,6 +101,7 @@ builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<PlatformProjectService>();
 builder.Services.AddScoped<IPasswordHasher<MyDevPlatform.Domain.Users.User>, PasswordHasher<MyDevPlatform.Domain.Users.User>>();
 builder.Services.AddScoped<SuperuserCredentialValidator>();
+builder.Services.AddScoped<OrganizationCreatedNotificationSender>();
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? "Host=localhost;Port=5432;Database=mydevplatform;Username=postgres;Password=postgres";

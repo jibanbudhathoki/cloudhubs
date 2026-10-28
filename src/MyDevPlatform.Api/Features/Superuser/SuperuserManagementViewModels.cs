@@ -90,6 +90,24 @@ public class SuperuserLoginViewModel
     public string? ReturnUrl { get; set; }
 }
 
+public class SuperuserAccountChangeViewModel
+{
+    [Required]
+    [DataType(DataType.Password)]
+    public string CurrentPassword { get; set; } = string.Empty;
+
+    [EmailAddress, StringLength(200)]
+    public string? NewEmail { get; set; }
+
+    [DataType(DataType.Password)]
+    [StringLength(128, MinimumLength = 8)]
+    public string? NewPassword { get; set; }
+
+    [DataType(DataType.Password)]
+    [Compare(nameof(NewPassword), ErrorMessage = "The new password and confirmation do not match.")]
+    public string? ConfirmNewPassword { get; set; }
+}
+
 public class PlatformSettingsViewModel
 {
     [Required, StringLength(100)]
@@ -178,4 +196,41 @@ public class PlatformSettingsViewModel
         NotifyOnOrganizationCreated = NotifyOnOrganizationCreated,
         NotificationEmail = NotificationEmail
     };
+
+    public void ApplySection(PlatformSettings settings, string section)
+    {
+        switch (section)
+        {
+            case "profile":
+                settings.PlatformName = PlatformName;
+                settings.SupportEmail = SupportEmail;
+                settings.PublicUrl = PublicUrl;
+                break;
+            case "security":
+                settings.SessionTimeoutMinutes = SessionTimeoutMinutes;
+                settings.JwtLifetimeMinutes = JwtLifetimeMinutes;
+                settings.MinimumPasswordLength = MinimumPasswordLength;
+                settings.RequirePasswordDigit = RequirePasswordDigit;
+                break;
+            case "organizations":
+                settings.AllowOrganizationCreation = AllowOrganizationCreation;
+                settings.DefaultOrganizationStatus = DefaultOrganizationStatus;
+                settings.DefaultTrialDays = DefaultTrialDays;
+                break;
+            case "catalog":
+                settings.DefaultTemplateId = DefaultTemplateId;
+                break;
+            case "billing":
+                settings.DefaultPlanName = DefaultPlanName;
+                settings.BillingCurrency = BillingCurrency;
+                settings.MonthlyPrice = MonthlyPrice;
+                break;
+            case "notifications":
+                settings.NotifyOnOrganizationCreated = NotifyOnOrganizationCreated;
+                settings.NotificationEmail = NotificationEmail;
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(section), section, "Unknown settings section.");
+        }
+    }
 }

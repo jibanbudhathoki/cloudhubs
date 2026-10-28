@@ -77,7 +77,7 @@ namespace MyDevPlatform.Infrastructure.Persistence.SchemaChanges
                 values: new object[]
                 {
                     1, "CloudHubs", "", "", 480, 15, 12, true, true, 1, 30,
-                    "default", "Standard", "USD", 0m, false, "", DateTime.UtcNow
+                    "default", "Standard", "USD", 0m, false, "", new DateTime(2026, 10, 28, 0, 0, 0, DateTimeKind.Utc)
                 });
         }
 

@@ -11,11 +11,16 @@ namespace MyDevPlatform.Api.Features.Superuser;
 public class SuperuserOrganizationsController : Controller
 {
     private readonly OrganizationService _organizationService;
+    private readonly OrganizationCreatedNotificationSender _notificationSender;
     private readonly ILogger<SuperuserOrganizationsController> _logger;
 
-    public SuperuserOrganizationsController(OrganizationService organizationService, ILogger<SuperuserOrganizationsController> logger)
+    public SuperuserOrganizationsController(
+        OrganizationService organizationService,
+        OrganizationCreatedNotificationSender notificationSender,
+        ILogger<SuperuserOrganizationsController> logger)
     {
         _organizationService = organizationService;
+        _notificationSender = notificationSender;
         _logger = logger;
     }
 
@@ -63,10 +68,20 @@ public class SuperuserOrganizationsController : Controller
 
         try
         {
-            await _organizationService.CreateOrganizationAsync(
+            var organization = await _organizationService.CreateOrganizationAsync(
                 new CreateOrganizationRequest(model.Name, model.Email, model.Slug, string.Empty, string.Empty),
                 cancellationToken);
             TempData["Success"] = "Organization created.";
+            try
+            {
+                await _notificationSender.SendIfEnabledAsync(organization, cancellationToken);
+            }
+            catch (Exception exception) when (exception is not OperationCanceledException)
+            {
+                _logger.LogError(exception, "Organization {OrganizationId} was created, but its notification email could not be sent.", organization.Id);
+                TempData["Error"] = "Organization was created, but the notification email could not be sent. Check SMTP configuration and server connectivity.";
+            }
+
             return RedirectToAction(nameof(Index));
         }
         catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)

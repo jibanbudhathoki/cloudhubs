@@ -5,6 +5,9 @@ public class Subscription
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid OrganizationId { get; set; }
     public SubscriptionStatus Status { get; set; } = SubscriptionStatus.Trial;
+    public string PlanName { get; set; } = "Standard";
+    public string Currency { get; set; } = "USD";
+    public decimal MonthlyPrice { get; set; }
     public DateTime? StartsAt { get; set; } = DateTime.UtcNow;
     public DateTime? ExpiresAt { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

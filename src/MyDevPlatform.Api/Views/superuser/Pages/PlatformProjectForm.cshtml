@@ -7,11 +7,11 @@
 }
 
 <section class="page-heading">
-    <div><p class="eyebrow">CONTROL PLANE / PLATFORM PROJECTS</p><h1>@ViewData["Title"]</h1><p>This project is owned by MyDev Platform and is not attached to an organization.</p></div>
-    <a class="btn btn-outline-secondary" href="/super-admin/projects">Back to projects</a>
+    <div><p class="eyebrow">CONTROL PLANE / PLATFORM PROJECTS</p><h1>@ViewData["Title"]</h1><p>This project is owned by CloudHubs and is not attached to an organization.</p></div>
+    <a class="btn btn-outline-secondary" href="/su/projects">Back to projects</a>
 </section>
 
-<form class="surface admin-form" method="post" action="@(isEdit ? $"/super-admin/projects/{Model.Id}/edit" : "/super-admin/projects/create")">
+<form class="surface admin-form" method="post" action="@(isEdit ? $"/su/projects/{Model.Id}/edit" : "/su/projects/create")">
     @Html.AntiForgeryToken()
     @if (!ViewData.ModelState.IsValid)
     {
@@ -24,5 +24,5 @@
     <div class="mb-3"><label class="form-label" asp-for="RootPath">Root path</label><input class="form-control" asp-for="RootPath" placeholder="platform/my-project" required /><span class="text-danger" asp-validation-for="RootPath"></span></div>
     <div class="mb-3"><label class="form-label" asp-for="TemplateId">Template ID</label><input class="form-control" asp-for="TemplateId" required /><span class="text-danger" asp-validation-for="TemplateId"></span></div>
     <div class="form-check mb-4"><input class="form-check-input" asp-for="IsActive" /><label class="form-check-label" asp-for="IsActive">Active</label></div>
-    <div class="form-actions"><a class="btn btn-outline-secondary" href="/super-admin/projects">Cancel</a><button class="btn btn-success" type="submit">@(isEdit ? "Save changes" : "Create project")</button></div>
+    <div class="form-actions"><a class="btn btn-outline-secondary" href="/su/projects">Cancel</a><button class="btn btn-success" type="submit">@(isEdit ? "Save changes" : "Create project")</button></div>
 </form>

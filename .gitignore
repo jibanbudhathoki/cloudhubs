@@ -12,6 +12,10 @@ coverage/
 *.userosscache
 *.sln.docstates
 appsettings.Local.json
+appsettings.Development.json
+appsettings.*
 .env
 .env.*
 Migrations/
+
+.fake

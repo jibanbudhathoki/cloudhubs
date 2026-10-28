@@ -18,6 +18,7 @@ public class MyDevPlatformDbContext : DbContext
     public DbSet<PlatformProject> PlatformProjects => Set<PlatformProject>();
     public DbSet<User> Users => Set<User>();
     public DbSet<Subscription> Subscriptions => Set<Subscription>();
+    public DbSet<PlatformSettings> PlatformSettings => Set<PlatformSettings>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -38,15 +39,33 @@ public class MyDevPlatformDbContext : DbContext
         {
             entity.HasKey(x => x.Id);
             entity.Property(x => x.Status).IsRequired();
+            entity.Property(x => x.PlanName).HasMaxLength(100).IsRequired();
+            entity.Property(x => x.Currency).HasMaxLength(3).IsRequired();
             entity.HasIndex(x => x.OrganizationId).IsUnique();
+        });
+
+        modelBuilder.Entity<PlatformSettings>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.PlatformName).HasMaxLength(100).IsRequired();
+            entity.Property(x => x.SupportEmail).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.PublicUrl).HasMaxLength(500).IsRequired();
+            entity.Property(x => x.DefaultTemplateId).HasMaxLength(150).IsRequired();
+            entity.Property(x => x.DefaultPlanName).HasMaxLength(100).IsRequired();
+            entity.Property(x => x.BillingCurrency).HasMaxLength(3).IsRequired();
+            entity.Property(x => x.NotificationEmail).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.MonthlyPrice).HasPrecision(12, 2);
         });
 
         modelBuilder.Entity<User>(entity =>
         {
             entity.HasKey(x => x.Id);
             entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
-            entity.Property(x => x.Email).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.Email).HasMaxLength(200);
+            entity.Property(x => x.LoginId).HasMaxLength(200);
+            entity.Property(x => x.PasswordHash).HasMaxLength(512);
             entity.HasIndex(x => x.Email).IsUnique();
+            entity.HasIndex(x => x.LoginId).IsUnique().HasFilter("\"LoginId\" IS NOT NULL");
         });
 
         modelBuilder.Entity<Project>(entity =>

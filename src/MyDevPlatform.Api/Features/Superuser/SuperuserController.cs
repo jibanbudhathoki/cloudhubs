@@ -4,29 +4,32 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using MyDevPlatform.Application.Organizations;
 using System.Security.Claims;
-using System.Security.Cryptography;
-using System.Text;
 
 namespace MyDevPlatform.Api.Features.Superuser;
 
-[Route("super-admin")]
+[Route("su")]
 [Authorize(Roles = "Superuser")]
 [AutoValidateAntiforgeryToken]
 public class SuperuserController : Controller
 {
     private readonly OrganizationService _organizationService;
     private readonly ILogger<SuperuserController> _logger;
-    private readonly IConfiguration _configuration;
+    private readonly SuperuserCredentialValidator _credentialValidator;
+    private readonly PlatformSettingsService _platformSettingsService;
 
-    public SuperuserController(OrganizationService organizationService, ILogger<SuperuserController> logger, IConfiguration configuration)
+    public SuperuserController(
+        OrganizationService organizationService,
+        ILogger<SuperuserController> logger,
+        SuperuserCredentialValidator credentialValidator,
+        PlatformSettingsService platformSettingsService)
     {
         _organizationService = organizationService;
         _logger = logger;
-        _configuration = configuration;
+        _credentialValidator = credentialValidator;
+        _platformSettingsService = platformSettingsService;
     }
 
     [HttpGet("")]
-    [HttpGet("/")]
     public async Task<IActionResult> Index(CancellationToken cancellationToken)
     {
         var model = await GetDashboardModel(cancellationToken);
@@ -34,21 +37,54 @@ public class SuperuserController : Controller
         return View("~/Views/superuser/Pages/Dashboard.cshtml", model);
     }
 
+    [HttpGet("settings")]
+    public async Task<IActionResult> Settings(CancellationToken cancellationToken)
+    {
+        ViewData["Section"] = "Settings";
+        ViewData["Title"] = "Settings";
+        var settings = await _platformSettingsService.GetAsync(cancellationToken);
+        return View("~/Views/superuser/Pages/Settings.cshtml", PlatformSettingsViewModel.From(settings));
+    }
+
+    [HttpPost("settings")]
+    public async Task<IActionResult> Settings(PlatformSettingsViewModel model, CancellationToken cancellationToken)
+    {
+        ViewData["Section"] = "Settings";
+        ViewData["Title"] = "Settings";
+        if (!ModelState.IsValid)
+        {
+            return View("~/Views/superuser/Pages/Settings.cshtml", model);
+        }
+
+        try
+        {
+            await _platformSettingsService.UpdateAsync(model.ToSettings(), cancellationToken);
+            TempData["Success"] = "Platform settings saved.";
+            return RedirectToAction(nameof(Settings));
+        }
+        catch (ArgumentException exception)
+        {
+            ModelState.AddModelError(string.Empty, exception.Message);
+            return View("~/Views/superuser/Pages/Settings.cshtml", model);
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Unable to save platform settings.");
+            ModelState.AddModelError(string.Empty, "Settings could not be saved. Check the database connection and try again.");
+            return View("~/Views/superuser/Pages/Settings.cshtml", model);
+        }
+    }
+
     [AllowAnonymous]
-    [HttpGet("login")]
+    [HttpGet("/su/login")]
     public IActionResult Login([FromQuery] string? returnUrl = null)
     {
         var model = new SuperuserLoginViewModel { ReturnUrl = returnUrl };
-        if (string.IsNullOrWhiteSpace(_configuration["Superuser:Email"]) || string.IsNullOrEmpty(_configuration["Superuser:Password"]))
-        {
-            model.ErrorMessage = "Superuser sign-in is not configured. Set SUPERUSER__EMAIL and SUPERUSER__PASSWORD.";
-        }
-
         return View("~/Views/superuser/Pages/Login.cshtml", model);
     }
 
     [AllowAnonymous]
-    [HttpPost("login")]
+    [HttpPost("/su/login")]
     public async Task<IActionResult> Login(SuperuserLoginViewModel model)
     {
         if (!ModelState.IsValid)
@@ -56,26 +92,17 @@ public class SuperuserController : Controller
             return View("~/Views/superuser/Pages/Login.cshtml", model);
         }
 
-        var configuredEmail = _configuration["Superuser:Email"];
-        var configuredPassword = _configuration["Superuser:Password"];
-        if (string.IsNullOrWhiteSpace(configuredEmail) || string.IsNullOrEmpty(configuredPassword))
+        var user = await _credentialValidator.ValidateAsync(model.Id, model.Password, HttpContext.RequestAborted);
+        if (user is null)
         {
-            model.ErrorMessage = "Superuser sign-in is not configured. Set SUPERUSER__EMAIL and SUPERUSER__PASSWORD.";
-            return View("~/Views/superuser/Pages/Login.cshtml", model);
-        }
-
-        var suppliedPassword = Encoding.UTF8.GetBytes(model.Password);
-        var expectedPassword = Encoding.UTF8.GetBytes(configuredPassword);
-        var passwordMatches = CryptographicOperations.FixedTimeEquals(suppliedPassword, expectedPassword);
-        if (!string.Equals(model.Email, configuredEmail, StringComparison.OrdinalIgnoreCase) || !passwordMatches)
-        {
-            model.ErrorMessage = "Email or password is incorrect.";
+            model.ErrorMessage = "Login ID or password is incorrect.";
             return View("~/Views/superuser/Pages/Login.cshtml", model);
         }
 
         var claims = new[]
         {
-            new Claim(ClaimTypes.Name, configuredEmail),
+            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new Claim(ClaimTypes.Name, user.LoginId ?? user.Email ?? user.Id.ToString()),
             new Claim(ClaimTypes.Role, "Superuser")
         };
         var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
@@ -109,18 +136,22 @@ public class SuperuserController : Controller
     }
 }
 
-[Route("su")]
-public class SuperuserRedirectController : Controller
+[Route("super-admin")]
+[AllowAnonymous]
+public class SuperuserLegacyRoutesController : Controller
 {
     [HttpGet("")]
-    public IActionResult Index() => Redirect("/super-admin/");
-
-    [HttpGet("organization")]
-    public IActionResult Organization() => Redirect("/super-admin/organization");
-
-    [HttpGet("users")]
-    public IActionResult Users() => Redirect("/super-admin/users");
+    public IActionResult Index() => Redirect("/su/");
 
     [HttpGet("login")]
-    public IActionResult Login() => Redirect("/super-admin/login");
+    public IActionResult Login() => Redirect("/su/login");
+
+    [HttpGet("organization")]
+    public IActionResult Organizations() => Redirect("/su/organization");
+
+    [HttpGet("projects")]
+    public IActionResult Projects() => Redirect("/su/projects");
+
+    [HttpGet("users")]
+    public IActionResult Users() => Redirect("/su/users");
 }

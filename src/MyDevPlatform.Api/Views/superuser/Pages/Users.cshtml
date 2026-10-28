@@ -11,10 +11,10 @@
         <h1>Users</h1>
         <p>Platform user records and assigned platform roles.</p>
     </div>
-    <a class="btn btn-success" href="/super-admin/users/create">Create user</a>
+    <a class="btn btn-success" href="/su/users/create">Create user</a>
 </section>
 
-<div class="alert alert-info" role="note">User records currently store name, email, role, and active status. They do not provision sign-in credentials or organization membership.</div>
+<div class="alert alert-info" role="note">The platform Superuser account is bootstrapped from environment credentials. Other platform user records do not yet provision sign-in credentials or organization membership.</div>
 
 @if (!Model.IsDataAvailable)
 {
@@ -26,13 +26,13 @@
         <div><h2 id="user-list-title">Platform users</h2><p>Search by name, email, or role.</p></div>
         <span class="count" aria-label="@Model.Users.Count users found">@Model.Users.Count</span>
     </div>
-    <form class="organization-search" method="get" action="/super-admin/users" role="search" aria-labelledby="user-list-title">
+    <form class="organization-search" method="get" action="/su/users" role="search" aria-labelledby="user-list-title">
         <label class="visually-hidden" for="user-query">Search users</label>
         <input class="form-control" id="user-query" name="query" type="search" value="@Model.Query" placeholder="Search users…" autocomplete="off" />
         <button class="btn btn-success" type="submit">Search</button>
         @if (!string.IsNullOrWhiteSpace(Model.Query))
         {
-            <a class="btn btn-outline-secondary" href="/super-admin/users">Clear</a>
+            <a class="btn btn-outline-secondary" href="/su/users">Clear</a>
         }
     </form>
     <p class="visually-hidden" role="status" aria-live="polite">@Model.Users.Count users found.</p>
@@ -50,11 +50,16 @@
                     @foreach (var user in Model.Users)
                     {
                         <tr>
-                            <td><div class="org-cell"><span class="org-monogram">@string.Concat(user.Name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(word => word[0]))</span><span><strong>@user.Name</strong><small class="org-email">@user.Email</small></span></div></td>
+                            <td><div class="org-cell"><span class="org-monogram">@string.Concat(user.Name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(word => word[0]))</span><span><strong>@user.Name</strong><small class="org-email">@(user.LoginId ?? user.Email)</small></span></div></td>
                             <td>@user.Role</td>
                             <td><span class="status @(user.IsActive ? "status-active" : "status-suspended")">@(user.IsActive ? "Active" : "Inactive")</span></td>
                             <td>@user.CreatedAt.ToLocalTime().ToString("MMM d, yyyy")</td>
-                            <td><div class="table-actions"><a class="btn btn-sm btn-outline-secondary" href="/super-admin/users/@user.Id/edit">Edit</a><form method="post" action="/super-admin/users/@user.Id/delete" onsubmit="return confirm('Delete this user?');">@Html.AntiForgeryToken()<button class="btn btn-sm btn-outline-danger" type="submit">Delete</button></form></div></td>
+                            <td>
+                                @if (user.Role != MyDevPlatform.Domain.Users.UserRole.Superuser)
+                                {
+                                    <div class="table-actions"><a class="btn btn-sm btn-outline-secondary" href="/su/users/@user.Id/edit">Edit</a><form method="post" action="/su/users/@user.Id/delete" onsubmit="return confirm('Delete this user?');">@Html.AntiForgeryToken()<button class="btn btn-sm btn-outline-danger" type="submit">Delete</button></form></div>
+                                }
+                            </td>
                         </tr>
                     }
                 </tbody>

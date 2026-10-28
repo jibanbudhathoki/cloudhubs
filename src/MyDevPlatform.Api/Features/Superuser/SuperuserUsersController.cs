@@ -1,10 +1,11 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MyDevPlatform.Application.Users;
+using MyDevPlatform.Domain.Users;
 
 namespace MyDevPlatform.Api.Features.Superuser;
 
-[Route("super-admin/users")]
+[Route("su/users")]
 [Authorize(Roles = "Superuser")]
 [AutoValidateAntiforgeryToken]
 public class SuperuserUsersController : Controller
@@ -19,7 +20,6 @@ public class SuperuserUsersController : Controller
     }
 
     [HttpGet("")]
-    [HttpGet("/")]
     public async Task<IActionResult> Index([FromQuery] string? query, CancellationToken cancellationToken)
     {
         ViewData["Section"] = "Users";
@@ -31,7 +31,8 @@ public class SuperuserUsersController : Controller
             {
                 users = users.Where(user =>
                     user.Name.Contains(normalizedQuery, StringComparison.OrdinalIgnoreCase)
-                    || user.Email.Contains(normalizedQuery, StringComparison.OrdinalIgnoreCase)
+                    || (user.Email?.Contains(normalizedQuery, StringComparison.OrdinalIgnoreCase) ?? false)
+                    || (user.LoginId?.Contains(normalizedQuery, StringComparison.OrdinalIgnoreCase) ?? false)
                     || user.Role.ToString().Contains(normalizedQuery, StringComparison.OrdinalIgnoreCase)).ToArray();
             }
 
@@ -87,13 +88,14 @@ public class SuperuserUsersController : Controller
     {
         var user = await _userService.GetUserAsync(id, cancellationToken);
         if (user is null) return NotFound();
+        if (user.Role == UserRole.Superuser) return Forbid();
         ViewData["Section"] = "Users";
         ViewData["Title"] = "Edit user";
         return View("~/Views/superuser/Pages/UserForm.cshtml", new UserFormViewModel
         {
             Id = user.Id,
             Name = user.Name,
-            Email = user.Email,
+            Email = user.Email ?? string.Empty,
             Role = user.Role.ToString(),
             IsActive = user.IsActive
         });
@@ -105,6 +107,9 @@ public class SuperuserUsersController : Controller
         ViewData["Section"] = "Users";
         ViewData["Title"] = "Edit user";
         model.Id = id;
+        var existingUser = await _userService.GetUserAsync(id, cancellationToken);
+        if (existingUser is null) return NotFound();
+        if (existingUser.Role == UserRole.Superuser) return Forbid();
         if (!ModelState.IsValid) return View("~/Views/superuser/Pages/UserForm.cshtml", model);
 
         try

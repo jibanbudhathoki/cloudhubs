@@ -68,6 +68,85 @@ namespace MyDevPlatform.Infrastructure.Persistence.SchemaChanges
                     b.ToTable("Organizations");
                 });
 
+            modelBuilder.Entity("MyDevPlatform.Domain.Organizations.PlatformSettings", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("AllowOrganizationCreation")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("BillingCurrency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)");
+
+                    b.Property<int>("DefaultOrganizationStatus")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("DefaultPlanName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("DefaultTemplateId")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<int>("DefaultTrialDays")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("JwtLifetimeMinutes")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("MinimumPasswordLength")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("MonthlyPrice")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)");
+
+                    b.Property<string>("NotificationEmail")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<bool>("NotifyOnOrganizationCreated")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("PlatformName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("PublicUrl")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<bool>("RequirePasswordDigit")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("SessionTimeoutMinutes")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("SupportEmail")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("PlatformSettings");
+                });
+
             modelBuilder.Entity("MyDevPlatform.Domain.Projects.PlatformProject", b =>
                 {
                     b.Property<Guid>("Id")
@@ -174,11 +253,24 @@ namespace MyDevPlatform.Infrastructure.Persistence.SchemaChanges
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)");
+
                     b.Property<DateTime?>("ExpiresAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<decimal>("MonthlyPrice")
+                        .HasColumnType("numeric");
+
                     b.Property<Guid>("OrganizationId")
                         .HasColumnType("uuid");
+
+                    b.Property<string>("PlanName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<DateTime?>("StartsAt")
                         .HasColumnType("timestamp with time zone");
@@ -207,12 +299,15 @@ namespace MyDevPlatform.Infrastructure.Persistence.SchemaChanges
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Email")
-                        .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
+
+                    b.Property<string>("LoginId")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
 
                     b.Property<bool>("MustChangePasswordOnNextLogin")
                         .HasColumnType("boolean");
@@ -221,6 +316,10 @@ namespace MyDevPlatform.Infrastructure.Persistence.SchemaChanges
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
+
+                    b.Property<string>("PasswordHash")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
 
                     b.Property<int>("Role")
                         .HasColumnType("integer");
@@ -232,6 +331,10 @@ namespace MyDevPlatform.Infrastructure.Persistence.SchemaChanges
 
                     b.HasIndex("Email")
                         .IsUnique();
+
+                    b.HasIndex("LoginId")
+                        .IsUnique()
+                        .HasFilter("\"LoginId\" IS NOT NULL");
 
                     b.ToTable("Users");
                 });

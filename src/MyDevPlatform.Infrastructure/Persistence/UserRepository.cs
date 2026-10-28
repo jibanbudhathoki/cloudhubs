@@ -26,7 +26,9 @@ public class UserRepository : IUserRepository
     public Task<bool> EmailExistsAsync(string email, Guid? exceptId = null, CancellationToken cancellationToken = default)
     {
         return _dbContext.Users.AnyAsync(
-            user => user.Email.ToLower() == email && (!exceptId.HasValue || user.Id != exceptId.Value),
+            user => user.Email != null
+                && user.Email.ToLower() == email
+                && (!exceptId.HasValue || user.Id != exceptId.Value),
             cancellationToken);
     }
 

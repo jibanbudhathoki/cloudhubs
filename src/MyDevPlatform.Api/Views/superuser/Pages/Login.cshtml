@@ -8,15 +8,15 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Superuser sign in - MyDevPlatform</title>
+    <title>Superuser sign in - CloudHubs</title>
     <link rel="stylesheet" href="~/lib/bootstrap/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/portal.css" />
 </head>
 <body class="login-page">
     <main class="login-shell">
-        <a class="brand" href="/super-admin/">
+        <a class="brand" href="/su/">
             <span class="brand-mark">M</span>
-            <span><strong>mydev</strong><small>PLATFORM</small></span>
+            <span><strong>CloudHubs</strong><small>PLATFORM</small></span>
         </a>
         <section class="login-panel">
             <p class="eyebrow">PLATFORM CONTROL</p>
@@ -26,12 +26,12 @@
             {
                 <div class="alert alert-warning" role="alert">@Model.ErrorMessage</div>
             }
-            <form method="post" action="/super-admin/login" class="login-form">
+            <form method="post" action="/su/login" class="login-form">
                 @Html.AntiForgeryToken()
                 <input asp-for="ReturnUrl" type="hidden" />
-                <label asp-for="Email">Email</label>
-                <input asp-for="Email" class="form-control" type="email" autocomplete="username" required />
-                <span asp-validation-for="Email" class="text-danger"></span>
+                <label asp-for="Id">Login ID</label>
+                <input asp-for="Id" class="form-control" autocomplete="username" required />
+                <span asp-validation-for="Id" class="text-danger"></span>
                 <label asp-for="Password">Password</label>
                 <input asp-for="Password" class="form-control" type="password" autocomplete="current-password" required />
                 <span asp-validation-for="Password" class="text-danger"></span>

@@ -8,10 +8,10 @@
 
 <section class="page-heading">
     <div><p class="eyebrow">CONTROL PLANE / USERS</p><h1>@ViewData["Title"]</h1><p>Manage the platform user directory record.</p></div>
-    <a class="btn btn-outline-secondary" href="/super-admin/users">Back to users</a>
+    <a class="btn btn-outline-secondary" href="/su/users">Back to users</a>
 </section>
 
-<form class="surface admin-form" method="post" action="@(isEdit ? $"/super-admin/users/{Model.Id}/edit" : "/super-admin/users/create")">
+<form class="surface admin-form" method="post" action="@(isEdit ? $"/su/users/{Model.Id}/edit" : "/su/users/create")">
     @Html.AntiForgeryToken()
     @if (!ViewData.ModelState.IsValid)
     {
@@ -21,5 +21,5 @@
     <div class="mb-3"><label class="form-label" asp-for="Email">Email</label><input class="form-control" asp-for="Email" type="email" autocomplete="email" required /><span class="text-danger" asp-validation-for="Email"></span></div>
     <div class="mb-3"><label class="form-label" asp-for="Role">Role</label><select class="form-select" asp-for="Role"><option value="OrganizationAdmin">Organization admin</option><option value="Developer">Developer</option><option value="Viewer">Viewer</option></select><span class="text-danger" asp-validation-for="Role"></span></div>
     <div class="form-check mb-4"><input class="form-check-input" asp-for="IsActive" /><label class="form-check-label" asp-for="IsActive">Active</label></div>
-    <div class="form-actions"><a class="btn btn-outline-secondary" href="/super-admin/users">Cancel</a><button class="btn btn-success" type="submit">@(isEdit ? "Save changes" : "Create user")</button></div>
+    <div class="form-actions"><a class="btn btn-outline-secondary" href="/su/users">Cancel</a><button class="btn btn-success" type="submit">@(isEdit ? "Save changes" : "Create user")</button></div>
 </form>

@@ -26,11 +26,55 @@ public class SuperuserCrudServiceTests
     public async Task OrganizationWithTenantProjectsCannotBeDeleted()
     {
         var repository = new OrganizationRepositoryStub { ProjectsExist = true };
-        var service = new OrganizationService(repository);
+        var service = new OrganizationService(repository, new PlatformSettingsRepositoryStub());
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => service.DeleteOrganizationAsync(Guid.NewGuid()));
 
         Assert.False(repository.DeleteCalled);
+    }
+
+    [Fact]
+    public async Task OrganizationCreationUsesPlatformDefaults()
+    {
+        var organizationRepository = new OrganizationRepositoryStub();
+        var settingsRepository = new PlatformSettingsRepositoryStub
+        {
+            Settings = new PlatformSettings
+            {
+                DefaultOrganizationStatus = OrganizationStatus.Draft,
+                DefaultTrialDays = 14,
+                DefaultPlanName = "Launch",
+                BillingCurrency = "EUR",
+                MonthlyPrice = 19.99m
+            }
+        };
+        var service = new OrganizationService(organizationRepository, settingsRepository);
+
+        await service.CreateOrganizationAsync(
+            new CreateOrganizationRequest("Acme", "owner@example.com", "acme", "", ""));
+
+        Assert.Equal(OrganizationStatus.Draft, organizationRepository.AddedOrganization?.Status);
+        Assert.Equal("Launch", organizationRepository.AddedOrganization?.Subscription?.PlanName);
+        Assert.Equal("EUR", organizationRepository.AddedOrganization?.Subscription?.Currency);
+        Assert.Equal(19.99m, organizationRepository.AddedOrganization?.Subscription?.MonthlyPrice);
+        Assert.InRange(
+            (organizationRepository.AddedOrganization!.Subscription!.ExpiresAt!.Value - DateTime.UtcNow).TotalDays,
+            13.99,
+            14.01);
+    }
+
+    [Fact]
+    public async Task OrganizationCreationCanBeDisabledInPlatformSettings()
+    {
+        var settingsRepository = new PlatformSettingsRepositoryStub
+        {
+            Settings = new PlatformSettings { AllowOrganizationCreation = false }
+        };
+        var service = new OrganizationService(new OrganizationRepositoryStub(), settingsRepository);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.CreateOrganizationAsync(
+                new CreateOrganizationRequest("Acme", "owner@example.com", "acme", "", "")));
     }
 
     [Fact]
@@ -46,16 +90,44 @@ public class SuperuserCrudServiceTests
         await Assert.ThrowsAsync<ArgumentException>(() => service.CreateUserAsync("Invalid Role", "invalid@example.com", "Superuser", true));
     }
 
+    [Fact]
+    public async Task SuperuserAccountsCannotBeManagedThroughRegularUserCrud()
+    {
+        var superuser = new User
+        {
+            Name = "Platform Superuser",
+            Email = "admin@example.com",
+            Role = UserRole.Superuser
+        };
+        var repository = new UserRepositoryStub
+        {
+            ExistingUser = superuser
+        };
+        var service = new UserService(repository);
+
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            service.CreateUserAsync("Another Superuser", "other@example.com", "Superuser", true));
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.UpdateUserAsync(superuser.Id, "Platform Superuser", "admin@example.com", "Viewer", true));
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.DeleteUserAsync(superuser.Id));
+    }
+
     private sealed class OrganizationRepositoryStub : IOrganizationRepository
     {
         public bool ProjectsExist { get; init; }
         public bool DeleteCalled { get; private set; }
+        public Organization? AddedOrganization { get; private set; }
 
         public Task<IReadOnlyCollection<OrganizationSummaryDto>> GetAllAsync(CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyCollection<OrganizationSummaryDto>>([]);
         public Task<Organization?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) => Task.FromResult<Organization?>(null);
         public Task<bool> SlugExistsAsync(string slug, Guid? exceptId = null, CancellationToken cancellationToken = default) => Task.FromResult(false);
         public Task<bool> HasProjectsAsync(Guid id, CancellationToken cancellationToken = default) => Task.FromResult(ProjectsExist);
-        public Task<Organization> AddAsync(Organization organization, CancellationToken cancellationToken = default) => Task.FromResult(organization);
+        public Task<Organization> AddAsync(Organization organization, CancellationToken cancellationToken = default)
+        {
+            AddedOrganization = organization;
+            return Task.FromResult(organization);
+        }
         public Task<Organization> UpdateAsync(Organization organization, CancellationToken cancellationToken = default) => Task.FromResult(organization);
 
         public Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
@@ -65,12 +137,25 @@ public class SuperuserCrudServiceTests
         }
     }
 
+    private sealed class PlatformSettingsRepositoryStub : IPlatformSettingsRepository
+    {
+        public PlatformSettings Settings { get; init; } = new();
+
+        public Task<PlatformSettings> GetAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult(Settings);
+
+        public Task<PlatformSettings> UpdateAsync(PlatformSettings settings, CancellationToken cancellationToken = default) =>
+            Task.FromResult(settings);
+    }
+
     private sealed class UserRepositoryStub : IUserRepository
     {
         public User? AddedUser { get; private set; }
+        public User? ExistingUser { get; init; }
 
         public Task<IReadOnlyCollection<User>> GetAllAsync(CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyCollection<User>>([]);
-        public Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) => Task.FromResult<User?>(AddedUser?.Id == id ? AddedUser : null);
+        public Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
+            Task.FromResult((User?)new[] { AddedUser, ExistingUser }.FirstOrDefault(user => user?.Id == id));
         public Task<bool> EmailExistsAsync(string email, Guid? exceptId = null, CancellationToken cancellationToken = default) => Task.FromResult(false);
 
         public Task<User> AddAsync(User user, CancellationToken cancellationToken = default)

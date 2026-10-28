@@ -44,6 +44,10 @@ public class UserService
         var normalized = Validate(name, email, role);
         var user = await _repository.GetByIdAsync(id, cancellationToken);
         if (user is null) return null;
+        if (user.Role == UserRole.Superuser)
+        {
+            throw new InvalidOperationException("Superuser accounts are managed through the configured bootstrap credentials.");
+        }
         if (await _repository.EmailExistsAsync(normalized.Email, id, cancellationToken))
         {
             throw new InvalidOperationException("A user with this email already exists.");
@@ -57,9 +61,16 @@ public class UserService
         return await _repository.UpdateAsync(user, cancellationToken);
     }
 
-    public Task<bool> DeleteUserAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task<bool> DeleteUserAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        return _repository.DeleteAsync(id, cancellationToken);
+        var user = await _repository.GetByIdAsync(id, cancellationToken);
+        if (user is null) return false;
+        if (user.Role == UserRole.Superuser)
+        {
+            throw new InvalidOperationException("Superuser accounts are managed through the configured bootstrap credentials.");
+        }
+
+        return await _repository.DeleteAsync(id, cancellationToken);
     }
 
     private static (string Name, string Email, UserRole Role) Validate(string name, string email, string role)
@@ -69,6 +80,10 @@ public class UserService
         if (!Enum.TryParse<UserRole>(role, true, out var parsedRole) || !Enum.IsDefined(parsedRole))
         {
             throw new ArgumentException("Choose a valid user role.", nameof(role));
+        }
+        if (parsedRole == UserRole.Superuser)
+        {
+            throw new ArgumentException("Superuser accounts are provisioned through the configured bootstrap credentials.", nameof(role));
         }
 
         return (name.Trim(), email.Trim().ToLowerInvariant(), parsedRole);

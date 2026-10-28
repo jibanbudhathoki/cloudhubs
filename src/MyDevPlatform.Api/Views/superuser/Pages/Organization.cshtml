@@ -10,11 +10,11 @@
     <div>
         <p class="eyebrow">CONTROL PLANE / ORGANIZATIONS</p>
         <h1>Organizations</h1>
-        <p>Accounts registered on MyDev Platform.</p>
+        <p>Accounts registered on CloudHubs.</p>
     </div>
     <div class="heading-actions">
-        <a class="btn btn-outline-secondary" href="/super-admin/">Back to overview</a>
-        <a class="btn btn-success" href="/super-admin/organization/create">Create organization</a>
+        <a class="btn btn-outline-secondary" href="/su/">Back to overview</a>
+        <a class="btn btn-success" href="/su/organization/create">Create organization</a>
     </div>
 </section>
 
@@ -31,13 +31,13 @@
         </div>
         <span class="count" aria-label="@Model.Organizations.Count organizations found">@Model.Organizations.Count</span>
     </div>
-    <form class="organization-search" method="get" action="/super-admin/organization" role="search" aria-labelledby="organization-list-title">
+    <form class="organization-search" method="get" action="/su/organization" role="search" aria-labelledby="organization-list-title">
         <label class="visually-hidden" for="organization-query">Search organizations</label>
         <input class="form-control" id="organization-query" name="query" type="search" value="@Model.SearchTerm" placeholder="Search organizations…" autocomplete="off" />
         <button class="btn btn-success" type="submit">Search</button>
         @if (!string.IsNullOrWhiteSpace(Model.SearchTerm))
         {
-            <a class="btn btn-outline-secondary" href="/super-admin/organization">Clear</a>
+            <a class="btn btn-outline-secondary" href="/su/organization">Clear</a>
         }
     </form>
     <p class="visually-hidden" role="status" aria-live="polite">@Model.Organizations.Count organizations found.</p>

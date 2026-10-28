@@ -1,9 +1,14 @@
+@inject MyDevPlatform.Application.Organizations.PlatformSettingsService PlatformSettingsService
+@{
+    var platformSettings = await PlatformSettingsService.GetAsync();
+    ViewData["PlatformName"] = platformSettings.PlatformName;
+}
 <!doctype html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>@ViewData["Title"] - MyDevPlatform Superuser</title>
+    <title>@ViewData["Title"] - @platformSettings.PlatformName Superadmin</title>
     <link rel="stylesheet" href="~/lib/bootstrap/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/portal.css" />
 </head>

@@ -13,7 +13,7 @@
         <h1>Superuser dashboard</h1>
         <p>Platform-wide organization management and service overview.</p>
     </div>
-    <a class="btn btn-success" href="/super-admin/organization">Manage organizations</a>
+    <a class="btn btn-success" href="/su/organization">Manage organizations</a>
 </section>
 
 @if (!Model.IsApiAvailable)
@@ -32,9 +32,9 @@
     <div class="surface-heading">
         <div>
             <h2>Organizations</h2>
-            <p>Accounts registered on MyDev Platform</p>
+            <p>Accounts registered on CloudHubs</p>
         </div>
-        <a class="count" href="/super-admin/organization">View all @Model.Organizations.Count</a>
+        <a class="count" href="/su/organization">View all @Model.Organizations.Count</a>
     </div>
     @if (Model.Organizations.Count > 0)
     {

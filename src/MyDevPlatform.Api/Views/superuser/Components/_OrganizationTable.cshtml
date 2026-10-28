@@ -36,8 +36,8 @@
                     {
                         <td>
                             <div class="table-actions">
-                                <a class="btn btn-sm btn-outline-secondary" href="/super-admin/organization/@organization.Id/edit">Edit</a>
-                                <form method="post" action="/super-admin/organization/@organization.Id/delete" onsubmit="return confirm('Delete this organization? Organizations with projects cannot be deleted.');">
+                                <a class="btn btn-sm btn-outline-secondary" href="/su/organization/@organization.Id/edit">Edit</a>
+                                <form method="post" action="/su/organization/@organization.Id/delete" onsubmit="return confirm('Delete this organization? Organizations with projects cannot be deleted.');">
                                     @Html.AntiForgeryToken()
                                     <button class="btn btn-sm btn-outline-danger" type="submit">Delete</button>
                                 </form>

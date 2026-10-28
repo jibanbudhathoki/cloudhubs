@@ -1,28 +1,28 @@
 @{
     var activeSection = ViewData["Section"] as string ?? "Overview";
 }
-<a class="brand" href="/super-admin/">
+<a class="brand" href="/su/">
     <span class="brand-mark">M</span>
-    <span><strong>mydev</strong><small>PLATFORM</small></span>
+    <span><strong>@(ViewData["PlatformName"] ?? "CloudHubs")</strong><small>PLATFORM</small></span>
 </a>
 <div class="role-label">PLATFORM CONTROL</div>
 <div class="role-switch">
     <span class="tenant-mark">MP</span>
-    <span><strong>MyDev Platform</strong><small>Superuser</small></span>
+    <span><strong>@(ViewData["PlatformName"] ?? "CloudHubs")</strong><small>Superuser</small></span>
 </div>
 <nav class="side-nav" aria-label="Superuser navigation">
-    <a class="side-link @(activeSection == "Overview" ? "active" : "")" href="/super-admin/" aria-current="@(activeSection == "Overview" ? "page" : null)">Overview</a>
-    <a class="side-link @(activeSection == "Organizations" ? "active" : "")" href="/super-admin/organization" aria-current="@(activeSection == "Organizations" ? "page" : null)">Organizations</a>
-    <a class="side-link @(activeSection == "Users" ? "active" : "")" href="/super-admin/users" aria-current="@(activeSection == "Users" ? "page" : null)">Users</a>
-    <a class="side-link @(activeSection == "Projects" ? "active" : "")" href="/super-admin/projects" aria-current="@(activeSection == "Projects" ? "page" : null)">Platform projects</a>
-    <a class="side-link" asp-controller="Admin" asp-action="Index">Admin portal</a>
+    <a class="side-link @(activeSection == "Overview" ? "active" : "")" href="/su/" aria-current="@(activeSection == "Overview" ? "page" : null)">Overview</a>
+    <a class="side-link @(activeSection == "Organizations" ? "active" : "")" href="/su/organization" aria-current="@(activeSection == "Organizations" ? "page" : null)">Organizations</a>
+    <a class="side-link @(activeSection == "Users" ? "active" : "")" href="/su/users" aria-current="@(activeSection == "Users" ? "page" : null)">Users</a>
+    <a class="side-link @(activeSection == "Projects" ? "active" : "")" href="/su/projects" aria-current="@(activeSection == "Projects" ? "page" : null)">Platform projects</a>
+    <a class="side-link @(activeSection == "Settings" ? "active" : "")" href="/su/settings" aria-current="@(activeSection == "Settings" ? "page" : null)">Settings</a>
 </nav>
 <div class="sidebar-spacer"></div>
 <div class="system-card">
     <span class="system-dot"></span>
     <span>Platform administration</span>
 </div>
-<form class="sign-out-form" method="post" action="/super-admin/logout">
+<form class="sign-out-form" method="post" action="/su/logout">
     @Html.AntiForgeryToken()
     <button class="side-link sign-out-button" type="submit">Sign out</button>
 </form>

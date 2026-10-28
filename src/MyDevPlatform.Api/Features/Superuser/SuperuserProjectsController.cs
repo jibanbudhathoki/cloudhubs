@@ -1,25 +1,30 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using MyDevPlatform.Application.Organizations;
 using MyDevPlatform.Application.Projects;
 
 namespace MyDevPlatform.Api.Features.Superuser;
 
-[Route("super-admin/projects")]
+[Route("su/projects")]
 [Authorize(Roles = "Superuser")]
 [AutoValidateAntiforgeryToken]
 public class SuperuserProjectsController : Controller
 {
     private readonly PlatformProjectService _projectService;
+    private readonly PlatformSettingsService _platformSettingsService;
     private readonly ILogger<SuperuserProjectsController> _logger;
 
-    public SuperuserProjectsController(PlatformProjectService projectService, ILogger<SuperuserProjectsController> logger)
+    public SuperuserProjectsController(
+        PlatformProjectService projectService,
+        PlatformSettingsService platformSettingsService,
+        ILogger<SuperuserProjectsController> logger)
     {
         _projectService = projectService;
+        _platformSettingsService = platformSettingsService;
         _logger = logger;
     }
 
     [HttpGet("")]
-    [HttpGet("/")]
     public async Task<IActionResult> Index([FromQuery] string? query, CancellationToken cancellationToken)
     {
         ViewData["Section"] = "Projects";
@@ -50,11 +55,15 @@ public class SuperuserProjectsController : Controller
     }
 
     [HttpGet("create")]
-    public IActionResult Create()
+    public async Task<IActionResult> Create(CancellationToken cancellationToken)
     {
         ViewData["Section"] = "Projects";
         ViewData["Title"] = "Create platform project";
-        return View("~/Views/superuser/Pages/PlatformProjectForm.cshtml", new PlatformProjectFormViewModel());
+        var settings = await _platformSettingsService.GetAsync(cancellationToken);
+        return View("~/Views/superuser/Pages/PlatformProjectForm.cshtml", new PlatformProjectFormViewModel
+        {
+            TemplateId = settings.DefaultTemplateId
+        });
     }
 
     [HttpPost("create")]

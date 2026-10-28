@@ -7,10 +7,12 @@ namespace MyDevPlatform.Application.Organizations;
 public class OrganizationService
 {
     private readonly IOrganizationRepository _repository;
+    private readonly IPlatformSettingsRepository _settingsRepository;
 
-    public OrganizationService(IOrganizationRepository repository)
+    public OrganizationService(IOrganizationRepository repository, IPlatformSettingsRepository settingsRepository)
     {
         _repository = repository;
+        _settingsRepository = settingsRepository;
     }
 
     public async Task<IReadOnlyCollection<OrganizationSummaryDto>> GetOrganizationsAsync(CancellationToken cancellationToken = default)
@@ -20,6 +22,12 @@ public class OrganizationService
 
     public async Task<OrganizationDetailsDto> CreateOrganizationAsync(CreateOrganizationRequest request, CancellationToken cancellationToken = default)
     {
+        var settings = await _settingsRepository.GetAsync(cancellationToken);
+        if (!settings.AllowOrganizationCreation)
+        {
+            throw new InvalidOperationException("Organization creation is disabled in platform settings.");
+        }
+
         if (string.IsNullOrWhiteSpace(request.Name))
         {
             throw new ArgumentException("Organization name is required.", nameof(request));
@@ -41,12 +49,17 @@ public class OrganizationService
             Name = request.Name.Trim(),
             Slug = slug,
             Email = request.Email.Trim(),
-            Status = OrganizationStatus.Active,
+            Status = settings.DefaultOrganizationStatus,
             Subscription = new Subscription
             {
                 Status = SubscriptionStatus.Trial,
+                PlanName = settings.DefaultPlanName,
+                Currency = settings.BillingCurrency,
+                MonthlyPrice = settings.MonthlyPrice,
                 StartsAt = DateTime.UtcNow,
-                ExpiresAt = DateTime.UtcNow.AddDays(30)
+                ExpiresAt = settings.DefaultTrialDays > 0
+                    ? DateTime.UtcNow.AddDays(settings.DefaultTrialDays)
+                    : DateTime.UtcNow
             }
         };
 

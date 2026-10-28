@@ -1,0 +1,148 @@
+@model PlatformSettingsViewModel
+@{
+    Layout = "~/Views/superuser/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Settings";
+    ViewData["Section"] = "Settings";
+}
+
+<section class="page-heading">
+    <div>
+        <p class="eyebrow">CONTROL PLANE / SETTINGS</p>
+        <h1>Platform settings</h1>
+        <p>Manage @(ViewData["PlatformName"] ?? "CloudHubs") defaults, security limits, and platform-wide preferences.</p>
+    </div>
+</section>
+
+<form class="settings-form" method="post" action="/su/settings">
+    @Html.AntiForgeryToken()
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div class="alert alert-danger" asp-validation-summary="All" role="alert"></div>
+    }
+
+    <section class="surface admin-form">
+        <div class="surface-heading">
+            <div><h2>Platform profile</h2><p>Identity and contact information shown across the platform.</p></div>
+        </div>
+        <div class="mb-3">
+            <label class="form-label" asp-for="PlatformName">Platform name</label>
+            <input class="form-control" asp-for="PlatformName" required />
+            <span class="text-danger" asp-validation-for="PlatformName"></span>
+        </div>
+        <div class="mb-3">
+            <label class="form-label" asp-for="SupportEmail">Support email</label>
+            <input class="form-control" asp-for="SupportEmail" type="email" autocomplete="email" />
+            <span class="text-danger" asp-validation-for="SupportEmail"></span>
+        </div>
+        <div>
+            <label class="form-label" asp-for="PublicUrl">Public platform URL</label>
+            <input class="form-control" asp-for="PublicUrl" type="url" placeholder="https://cloudhubs.example.com" />
+            <span class="text-text-secondary">Use the externally reachable HTTPS address, if configured.</span>
+            <span class="text-danger" asp-validation-for="PublicUrl"></span>
+        </div>
+    </section>
+
+    <section class="surface admin-form">
+        <div class="surface-heading">
+            <div><h2>Security</h2><p>Limits applied to Superadmin browser sessions and API tokens.</p></div>
+        </div>
+        <div class="mb-3">
+            <label class="form-label" asp-for="SessionTimeoutMinutes">Superadmin session lifetime (minutes)</label>
+            <input class="form-control" asp-for="SessionTimeoutMinutes" type="number" min="15" max="720" required />
+            <span class="text-danger" asp-validation-for="SessionTimeoutMinutes"></span>
+        </div>
+        <div class="mb-3">
+            <label class="form-label" asp-for="JwtLifetimeMinutes">API access-token lifetime (minutes)</label>
+            <input class="form-control" asp-for="JwtLifetimeMinutes" type="number" min="5" max="60" required />
+            <span class="text-danger" asp-validation-for="JwtLifetimeMinutes"></span>
+        </div>
+        <div class="mb-3">
+            <label class="form-label" asp-for="MinimumPasswordLength">Minimum bootstrapped Superadmin password length</label>
+            <input class="form-control" asp-for="MinimumPasswordLength" type="number" min="8" max="128" required />
+            <span class="text-danger" asp-validation-for="MinimumPasswordLength"></span>
+        </div>
+        <div class="form-check">
+            <input class="form-check-input" asp-for="RequirePasswordDigit" />
+            <label class="form-check-label" asp-for="RequirePasswordDigit">Require at least one digit in a bootstrapped Superadmin password</label>
+        </div>
+        <div class="alert alert-info mt-3 mb-0" role="note">Password rules are checked when the Superadmin account is first bootstrapped. Passwords and JWT signing keys remain in environment variables and are never stored or shown here. MFA is not yet supported.</div>
+    </section>
+
+    <section class="surface admin-form">
+        <div class="surface-heading">
+            <div><h2>Organization defaults</h2><p>Applied when a new organization is created.</p></div>
+        </div>
+        <div class="form-check mb-3">
+            <input class="form-check-input" asp-for="AllowOrganizationCreation" />
+            <label class="form-check-label" asp-for="AllowOrganizationCreation">Allow Superadmin to create organizations</label>
+        </div>
+        <div class="mb-3">
+            <label class="form-label" asp-for="DefaultOrganizationStatus">Default organization status</label>
+            <select class="form-select" asp-for="DefaultOrganizationStatus">
+                <option value="Draft">Draft</option>
+                <option value="Active">Active</option>
+                <option value="Suspended">Suspended</option>
+                <option value="Archived">Archived</option>
+            </select>
+            <span class="text-danger" asp-validation-for="DefaultOrganizationStatus"></span>
+        </div>
+        <div>
+            <label class="form-label" asp-for="DefaultTrialDays">Default trial duration (days)</label>
+            <input class="form-control" asp-for="DefaultTrialDays" type="number" min="0" max="365" required />
+            <span class="text-danger" asp-validation-for="DefaultTrialDays"></span>
+        </div>
+    </section>
+
+    <section class="surface admin-form">
+        <div class="surface-heading">
+            <div><h2>Catalog defaults</h2><p>Defaults for newly created platform-owned projects.</p></div>
+        </div>
+        <div>
+            <label class="form-label" asp-for="DefaultTemplateId">Default template ID</label>
+            <input class="form-control" asp-for="DefaultTemplateId" required />
+            <span class="text-danger" asp-validation-for="DefaultTemplateId"></span>
+        </div>
+    </section>
+
+    <section class="surface admin-form">
+        <div class="surface-heading">
+            <div><h2>Billing defaults</h2><p>Plan details copied onto new organization subscriptions.</p></div>
+        </div>
+        <div class="alert alert-info" role="note">These values are stored with new subscriptions. Payment processing and invoicing are not integrated yet.</div>
+        <div class="mb-3">
+            <label class="form-label" asp-for="DefaultPlanName">Default plan name</label>
+            <input class="form-control" asp-for="DefaultPlanName" required />
+            <span class="text-danger" asp-validation-for="DefaultPlanName"></span>
+        </div>
+        <div class="mb-3">
+            <label class="form-label" asp-for="BillingCurrency">Billing currency</label>
+            <input class="form-control" asp-for="BillingCurrency" maxlength="3" autocapitalize="characters" placeholder="USD" required />
+            <span class="text-danger" asp-validation-for="BillingCurrency"></span>
+        </div>
+        <div>
+            <label class="form-label" asp-for="MonthlyPrice">Monthly price</label>
+            <input class="form-control" asp-for="MonthlyPrice" type="number" min="0" max="9999999999" step="0.01" required />
+            <span class="text-danger" asp-validation-for="MonthlyPrice"></span>
+        </div>
+    </section>
+
+    <section class="surface admin-form">
+        <div class="surface-heading">
+            <div><h2>Notifications</h2><p>Configure the intended destination for platform alerts.</p></div>
+        </div>
+        <div class="alert alert-info" role="note">Email delivery is not integrated yet. These preferences are saved for the notification service.</div>
+        <div class="form-check mb-3">
+            <input class="form-check-input" asp-for="NotifyOnOrganizationCreated" />
+            <label class="form-check-label" asp-for="NotifyOnOrganizationCreated">Notify when an organization is created</label>
+        </div>
+        <div>
+            <label class="form-label" asp-for="NotificationEmail">Notification recipient</label>
+            <input class="form-control" asp-for="NotificationEmail" type="email" autocomplete="email" />
+            <span class="text-danger" asp-validation-for="NotificationEmail"></span>
+        </div>
+    </section>
+
+    <div class="form-actions mb-4">
+        <button class="btn btn-success" type="submit">Save settings</button>
+    </div>
+</form>

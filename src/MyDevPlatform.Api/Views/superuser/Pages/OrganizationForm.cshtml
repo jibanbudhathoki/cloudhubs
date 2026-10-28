@@ -8,10 +8,10 @@
 
 <section class="page-heading">
     <div><p class="eyebrow">CONTROL PLANE / ORGANIZATIONS</p><h1>@ViewData["Title"]</h1><p>Organization records are independent from platform-owned projects.</p></div>
-    <a class="btn btn-outline-secondary" href="/super-admin/organization">Back to organizations</a>
+    <a class="btn btn-outline-secondary" href="/su/organization">Back to organizations</a>
 </section>
 
-<form class="surface admin-form" method="post" action="@(isEdit ? $"/super-admin/organization/{Model.Id}/edit" : "/super-admin/organization/create")">
+<form class="surface admin-form" method="post" action="@(isEdit ? $"/su/organization/{Model.Id}/edit" : "/su/organization/create")">
     @Html.AntiForgeryToken()
     @if (!ViewData.ModelState.IsValid)
     {
@@ -24,5 +24,5 @@
     {
         <div class="mb-3"><label class="form-label" asp-for="Status">Status</label><select class="form-select" asp-for="Status"><option value="Draft">Draft</option><option value="Active">Active</option><option value="Suspended">Suspended</option><option value="Archived">Archived</option></select><span class="text-danger" asp-validation-for="Status"></span></div>
     }
-    <div class="form-actions"><a class="btn btn-outline-secondary" href="/super-admin/organization">Cancel</a><button class="btn btn-success" type="submit">@(isEdit ? "Save changes" : "Create organization")</button></div>
+    <div class="form-actions"><a class="btn btn-outline-secondary" href="/su/organization">Cancel</a><button class="btn btn-success" type="submit">@(isEdit ? "Save changes" : "Create organization")</button></div>
 </form>

@@ -5,7 +5,7 @@ using MyDevPlatform.Contracts.Organizations;
 
 namespace MyDevPlatform.Api.Features.Superuser;
 
-[Route("super-admin/organization")]
+[Route("su/organization")]
 [Authorize(Roles = "Superuser")]
 [AutoValidateAntiforgeryToken]
 public class SuperuserOrganizationsController : Controller
@@ -20,7 +20,6 @@ public class SuperuserOrganizationsController : Controller
     }
 
     [HttpGet("")]
-    [HttpGet("/")]
     public async Task<IActionResult> Index([FromQuery] string? query, CancellationToken cancellationToken)
     {
         ViewData["Section"] = "Organizations";

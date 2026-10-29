@@ -1,0 +1,70 @@
+@model CloudHubs.Contracts.Organizations.OrganizationDetailsDto
+@{
+    Layout = "~/Views/superuser/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Organization subscription features";
+    ViewData["Section"] = "Organizations";
+    var features = Model.SubscriptionFeatures;
+}
+
+<section class="page-heading">
+    <div>
+        <p class="eyebrow">CONTROL PLANE / ORGANIZATIONS / SUBSCRIPTION</p>
+        <h1>@Model.Name features</h1>
+        <p>Features and limits are determined by the organization’s assigned subscription plan.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a class="btn btn-outline-secondary" href="/su/organization/@Model.Id/subscription">Change plan</a>
+        <a class="btn btn-outline-secondary" href="/su/organization">Back to organizations</a>
+    </div>
+</section>
+
+<section class="surface mb-4">
+    <div class="surface-heading">
+        <div><h2>Subscription</h2><p>@Model.Name · @Model.Email</p></div>
+        <span class="status status-@Model.SubscriptionStatus.ToLowerInvariant()">@Model.SubscriptionStatus</span>
+    </div>
+    @if (features is null)
+    {
+        <div class="empty-state">
+            <strong>No catalog plan is linked</strong>
+            <span>This organization has no subscription plan with feature entitlements. Assign a catalog plan to view its included features and limits.</span>
+        </div>
+    }
+    else
+    {
+        <div class="p-3">
+            <h3>@features.Name</h3>
+            <p class="text-muted">@features.Currency @features.Price.ToString("0.00") / @features.BillingInterval</p>
+        </div>
+    }
+</section>
+
+<section class="surface mb-4" hidden="@(features is null)">
+        <div class="surface-heading"><div><h2>Plan limits</h2><p>These are the limits configured on the organization’s assigned plan.</p></div></div>
+        <div class="row g-3 p-3">
+            <div class="col-md-4"><div class="border rounded p-3"><strong>Projects</strong><div>@(features?.MaxProjects == 0 ? "Unlimited" : features?.MaxProjects.ToString())</div></div></div>
+            <div class="col-md-4"><div class="border rounded p-3"><strong>Members</strong><div>@(features?.MaxMembers == 0 ? "Unlimited" : features?.MaxMembers.ToString())</div></div></div>
+            <div class="col-md-4"><div class="border rounded p-3"><strong>Storage</strong><div>@(features?.StorageLimitGb == 0 ? "Unlimited" : $"{features?.StorageLimitGb} GB")</div></div></div>
+        </div>
+</section>
+
+<section class="surface" hidden="@(features is null)">
+        <div class="surface-heading"><div><h2>Included features</h2><p>Feature availability comes from the current catalog plan assignment.</p></div></div>
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead><tr><th>Feature</th><th>Availability</th></tr></thead>
+                <tbody>
+                    <tr><td>API access</td><td>@(features?.HasApiAccess == true ? "Included" : "Not included")</td></tr>
+                    <tr><td>Custom domains</td><td>@(features?.HasCustomDomains == true ? "Included" : "Not included")</td></tr>
+                    <tr><td>Advanced analytics</td><td>@(features?.HasAdvancedAnalytics == true ? "Included" : "Not included")</td></tr>
+                    <tr><td>Priority support</td><td>@(features?.HasPrioritySupport == true ? "Included" : "Not included")</td></tr>
+                    <tr><td>Single sign-on (OpenID Connect)</td><td>@(features?.HasSingleSignOn == true ? "Included" : "Not included")</td></tr>
+                    <tr><td>Organization audit logs</td><td>@(features?.HasAuditLogs == true ? "Included" : "Not included")</td></tr>
+                    <tr><td>Automated backups</td><td>@(features?.HasAutomatedBackups == true ? "Included" : "Not included")</td></tr>
+                    <tr><td>Integrations (webhooks, GitHub, Slack)</td><td>@(features?.HasIntegrations == true ? "Included" : "Not included")</td></tr>
+                    <tr><td>Custom organization roles</td><td>@(features?.HasCustomRoles == true ? "Included" : "Not included")</td></tr>
+                    <tr><td>Support first-response target</td><td>@(features?.SupportResponseHours is > 0 ? $"{features.SupportResponseHours} hours" : "No SLA")</td></tr>
+                </tbody>
+            </table>
+        </div>
+</section>

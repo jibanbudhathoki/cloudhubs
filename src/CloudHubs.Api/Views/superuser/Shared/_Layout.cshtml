@@ -1,0 +1,45 @@
+@inject CloudHubs.Application.Organizations.PlatformSettingsService PlatformSettingsService
+@{
+    var platformSettings = await PlatformSettingsService.GetAsync();
+    ViewData["PlatformName"] = platformSettings.PlatformName;
+    ViewData["PlatformSupportEmail"] = new System.ComponentModel.DataAnnotations.EmailAddressAttribute().IsValid(platformSettings.SupportEmail)
+        ? platformSettings.SupportEmail
+        : null;
+    ViewData["PlatformPublicUrl"] = Uri.TryCreate(platformSettings.PublicUrl, UriKind.Absolute, out var publicUri)
+        && publicUri.Scheme is "http" or "https"
+            ? publicUri.AbsoluteUri
+            : null;
+}
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewData["Title"] - @platformSettings.PlatformName Superadmin</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/portal.css" />
+</head>
+<body>
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+    <div class="admin-shell">
+        <aside class="admin-sidebar">
+            @await Html.PartialAsync("~/Views/superuser/Components/_Sidebar.cshtml")
+        </aside>
+        <main class="admin-main" id="main-content" tabindex="-1">
+            @await Html.PartialAsync("~/Views/superuser/Components/_Topbar.cshtml")
+            <div class="page-content">
+                @if (TempData["Success"] is string successMessage)
+                {
+                    <div class="alert alert-success" role="status">@successMessage</div>
+                }
+                @if (TempData["Error"] is string errorMessage)
+                {
+                    <div class="alert alert-danger" role="alert">@errorMessage</div>
+                }
+                @RenderBody()
+            </div>
+        </main>
+    </div>
+    <script src="~/lib/bootstrap/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

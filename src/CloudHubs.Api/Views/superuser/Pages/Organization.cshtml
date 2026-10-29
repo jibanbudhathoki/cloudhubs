@@ -1,0 +1,59 @@
+@model SuperuserDashboardViewModel
+@{
+    Layout = "~/Views/superuser/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Organizations";
+    ViewData["Section"] = "Organizations";
+    ViewData["ShowOrganizationActions"] = true;
+}
+
+<section class="page-heading">
+    <div>
+        <p class="eyebrow">CONTROL PLANE / ORGANIZATIONS</p>
+        <h1>Organizations</h1>
+        <p>Accounts registered on CloudHubs.</p>
+    </div>
+    <div class="heading-actions">
+        <a class="btn btn-outline-secondary" href="/su/">Back to overview</a>
+        <a class="btn btn-success" href="/su/organization/create">Create organization</a>
+    </div>
+</section>
+
+@if (!Model.IsApiAvailable)
+{
+    <div class="alert alert-warning" role="status">@Model.ErrorMessage</div>
+}
+
+<section class="surface">
+    <div class="surface-heading">
+        <div>
+            <h2 id="organization-list-title">All organizations</h2>
+            <p>Search by organization, contact, owner/admin, slug, plan, or status.</p>
+        </div>
+        <span class="count" aria-label="@Model.Organizations.Count organizations found">@Model.Organizations.Count</span>
+    </div>
+    <form class="organization-search" method="get" action="/su/organization" role="search" aria-labelledby="organization-list-title">
+        <label class="visually-hidden" for="organization-query">Search organizations</label>
+        <input class="form-control" id="organization-query" name="query" type="search" value="@Model.SearchTerm" placeholder="Search organizations…" autocomplete="off" />
+        <button class="btn btn-success" type="submit">Search</button>
+        @if (!string.IsNullOrWhiteSpace(Model.SearchTerm))
+        {
+            <a class="btn btn-outline-secondary" href="/su/organization">Clear</a>
+        }
+    </form>
+    <p class="visually-hidden" role="status" aria-live="polite">@Model.Organizations.Count organizations found.</p>
+    @if (TempData["Success"] is string successMessage)
+    {
+        <div class="alert alert-success mx-3" role="status">@successMessage</div>
+    }
+    @if (Model.Organizations.Count > 0)
+    {
+        @await Html.PartialAsync("~/Views/superuser/Components/_OrganizationTable.cshtml", Model.Organizations)
+    }
+    else
+    {
+        <div class="empty-state">
+            <strong>@(!Model.IsApiAvailable ? "Organization data unavailable" : Model.SearchTerm is not null ? "No matching organizations" : "No organizations yet")</strong>
+            <span>@(!Model.IsApiAvailable ? "Check the database connection, then reload this page." : Model.SearchTerm is not null ? "Try a different search term or clear the filter." : "New accounts will appear here.")</span>
+        </div>
+    }
+</section>

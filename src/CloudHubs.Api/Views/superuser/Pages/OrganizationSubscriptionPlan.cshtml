@@ -1,0 +1,52 @@
+@using CloudHubs.Domain.Subscriptions
+@model OrganizationSubscriptionPlanViewModel
+@{
+    Layout = "~/Views/superuser/Shared/_Layout.cshtml";
+    var availablePlans = ViewData["AvailablePlans"] as IReadOnlyCollection<SubscriptionPlan> ?? [];
+    ViewData["Section"] = "Organizations";
+}
+
+<section class="page-heading">
+    <div>
+        <p class="eyebrow">CONTROL PLANE / ORGANIZATIONS</p>
+        <h1>Change subscription plan</h1>
+        <p>Update the plan assigned to @Model.OrganizationName.</p>
+    </div>
+    <a class="btn btn-outline-secondary" href="/su/organization">Back to organizations</a>
+</section>
+
+<form class="surface admin-form" method="post" action="/su/organization/@Model.OrganizationId/subscription">
+    @Html.AntiForgeryToken()
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div class="alert alert-danger" asp-validation-summary="All" role="alert"></div>
+    }
+
+    <div class="alert alert-info" role="note">
+        Current plan: <strong>@(Model.CurrentPlanName ?? "Unassigned")</strong>
+        <span class="ms-2">Subscription status: <strong>@(Model.SubscriptionStatus ?? "No subscription")</strong></span>
+        <div class="mt-2">Changing plans updates the plan and billing terms. The current subscription status and expiry date are preserved.</div>
+    </div>
+
+    <div class="mb-4">
+        <label class="form-label" asp-for="PlanId">New subscription plan</label>
+        <select class="form-select" asp-for="PlanId" required>
+            <option value="">Select a plan</option>
+            @foreach (var plan in availablePlans)
+            {
+                var interval = plan.BillingInterval == SubscriptionBillingInterval.Monthly ? "month" : "year";
+                <option value="@plan.Id">@plan.Name — @plan.Currency @plan.Price.ToString("0.00")/@interval</option>
+            }
+        </select>
+        <span class="text-danger" asp-validation-for="PlanId"></span>
+        @if (availablePlans.Count == 0)
+        {
+            <div class="alert alert-warning mt-2" role="status">There are no active subscription plans to assign.</div>
+        }
+    </div>
+
+    <div class="form-actions">
+        <a class="btn btn-outline-secondary" href="/su/organization">Cancel</a>
+        <button class="btn btn-success" type="submit" disabled="@(availablePlans.Count == 0)">Change plan</button>
+    </div>
+</form>

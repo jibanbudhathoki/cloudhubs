@@ -1,0 +1,88 @@
+@using CloudHubs.Domain.Subscriptions
+@model SubscriptionPlanIndexViewModel
+@{
+    Layout = "~/Views/superuser/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Subscription plans";
+    ViewData["Section"] = "Plans";
+}
+
+<section class="page-heading">
+    <div><p class="eyebrow">CONTROL PLANE / BILLING</p><h1>Subscription plans</h1><p>Reusable plans with billing terms, features, and organization limits.</p></div>
+    <a class="btn btn-success" href="/su/plans/create">Create plan</a>
+</section>
+
+@if (!Model.IsDataAvailable)
+{
+    <div class="alert alert-warning" role="status">@Model.ErrorMessage</div>
+}
+@if (TempData["Success"] is string success)
+{
+    <div class="alert alert-success" role="status">@success</div>
+}
+@if (TempData["Error"] is string error)
+{
+    <div class="alert alert-danger" role="alert">@error</div>
+}
+
+<section class="surface">
+    <div class="surface-heading">
+        <div><h2>Plan catalog</h2><p>Limits set to 0 are unlimited. Assigned plans cannot be deleted; deactivate them instead.</p></div>
+        <span class="count">@Model.Plans.Count</span>
+    </div>
+    @if (Model.Plans.Count > 0)
+    {
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead><tr><th>Plan</th><th>Price</th><th>Limits</th><th>Features</th><th>Organizations</th><th>Status</th><th>Actions</th></tr></thead>
+                <tbody>
+                    @foreach (var plan in Model.Plans)
+                    {
+                        var interval = plan.BillingInterval == SubscriptionBillingInterval.Monthly ? "month" : "year";
+                        <tr>
+                            <td><strong>@plan.Name</strong><small class="d-block org-email">@plan.Description</small></td>
+                            <td>
+                                @plan.Currency @plan.Price.ToString("0.00") / @interval
+                                @if (plan.TrialDays > 0)
+                                {
+                                    <small class="d-block org-email">@plan.TrialDays trial days</small>
+                                }
+                            </td>
+                            <td><small>Projects: @(plan.MaxProjects == 0 ? "Unlimited" : plan.MaxProjects)</small><br /><small>Members: @(plan.MaxMembers == 0 ? "Unlimited" : plan.MaxMembers)</small><br /><small>Storage: @(plan.StorageLimitGb == 0 ? "Unlimited" : $"{plan.StorageLimitGb} GB")</small></td>
+                            <td>
+                                @{
+                                    var features = new List<string>();
+                                    if (plan.HasApiAccess) features.Add("API access");
+                                    if (plan.HasCustomDomains) features.Add("Custom domains");
+                                    if (plan.HasAdvancedAnalytics) features.Add("Advanced analytics");
+                                    if (plan.HasPrioritySupport) features.Add("Priority support");
+                                    if (plan.HasSingleSignOn) features.Add("SSO");
+                                    if (plan.HasAuditLogs) features.Add("Audit logs");
+                                    if (plan.HasAutomatedBackups) features.Add("Automated backups");
+                                    if (plan.HasIntegrations) features.Add("Integrations");
+                                    if (plan.HasCustomRoles) features.Add("Custom roles");
+                                    if (plan.SupportResponseHours > 0) features.Add($"{plan.SupportResponseHours}h support response");
+                                }
+                                @(features.Count == 0 ? "Core features" : string.Join(", ", features))
+                            </td>
+                            <td>@(Model.OrganizationCounts.TryGetValue(plan.Id, out var organizationCount) ? organizationCount : 0)</td>
+                            <td><span class="status @(plan.IsActive ? "status-active" : "status-suspended")">@(plan.IsActive ? "Active" : "Inactive")</span></td>
+                            <td>
+                                <div class="table-actions">
+                                    <a class="btn btn-sm btn-outline-secondary" href="/su/plans/@plan.Id/edit">Edit</a>
+                                    <form method="post" action="/su/plans/@plan.Id/delete" onsubmit="return confirm('Delete this plan? Assigned plans cannot be deleted.');">
+                                        @Html.AntiForgeryToken()
+                                        <button class="btn btn-sm btn-outline-danger" type="submit">Delete</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else if (Model.IsDataAvailable)
+    {
+        <div class="empty-state"><strong>No subscription plans yet</strong><span>Create a plan before assigning subscriptions to organizations.</span></div>
+    }
+</section>

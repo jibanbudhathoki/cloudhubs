@@ -1,0 +1,64 @@
+@model IReadOnlyCollection<OrganizationSummaryDto>
+@{
+    var showActions = ViewData["ShowOrganizationActions"] as bool? ?? false;
+}
+<div class="table-responsive">
+    <table class="table align-middle mb-0">
+        <caption class="visually-hidden">Organizations with contact, owner/admin, member count, plan, and status</caption>
+        <thead>
+            <tr>
+                <th scope="col">Organization</th>
+                <th scope="col">Contact email</th>
+                <th scope="col">Owner/admin</th>
+                <th scope="col">Members</th>
+                <th scope="col">Plan</th>
+                <th scope="col">Status</th>
+                <th scope="col">Created</th>
+                @if (showActions)
+                {
+                    <th scope="col"><span class="visually-hidden">Actions</span></th>
+                }
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var organization in Model)
+            {
+                <tr>
+                    <td>
+                        <div class="org-cell">
+                            <span class="org-monogram">@string.Concat(organization.Name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(word => word[0]))</span>
+                            <span><strong>@organization.Name</strong><small>@organization.Slug</small></span>
+                        </div>
+                    </td>
+                    <td class="org-email">@organization.Email</td>
+                    <td>
+                        <span>@(organization.OwnerName ?? "Not assigned")</span>
+                        @if (organization.OwnerEmail is not null)
+                        {
+                            <small class="org-email d-block">@organization.OwnerEmail</small>
+                        }
+                    </td>
+                    <td>@organization.MemberCount</td>
+                    <td><span class="plan-label">@(organization.PlanName ?? "Unassigned")</span><small class="d-block org-email">@(organization.SubscriptionStatus ?? "No subscription")</small></td>
+                    <td><span class="status status-@organization.Status.ToLowerInvariant()">@organization.Status</span></td>
+                    <td>@organization.CreatedAt.ToLocalTime().ToString("MMM d, yyyy")</td>
+                    @if (showActions)
+                    {
+                        <td>
+                            <div class="table-actions">
+                                <a class="btn btn-sm btn-outline-secondary" href="/su/organization/@organization.Id/edit">Edit</a>
+                                <a class="btn btn-sm btn-outline-secondary" href="/su/organization/@organization.Id/features">Features</a>
+                                <a class="btn btn-sm btn-outline-secondary" href="/su/organization/@organization.Id/subscription">Change plan</a>
+                                <a class="btn btn-sm btn-outline-secondary" href="/su/organization/@organization.Id/roles">Roles</a>
+                                <form method="post" action="/su/organization/@organization.Id/delete" onsubmit="return confirm('Delete this organization? Organizations with projects cannot be deleted.');">
+                                    @Html.AntiForgeryToken()
+                                    <button class="btn btn-sm btn-outline-danger" type="submit">Delete</button>
+                                </form>
+                            </div>
+                        </td>
+                    }
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

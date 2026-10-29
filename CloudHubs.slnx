@@ -1,0 +1,8 @@
+<Solution>
+	<Project Path="src/CloudHubs.Api/CloudHubs.Api.csproj" />
+	<Project Path="src/CloudHubs.Application/CloudHubs.Application.csproj" />
+	<Project Path="src/CloudHubs.Contracts/CloudHubs.Contracts.csproj" />
+	<Project Path="src/CloudHubs.Domain/CloudHubs.Domain.csproj" />
+	<Project Path="src/CloudHubs.Infrastructure/CloudHubs.Infrastructure.csproj" />
+	<Project Path="tests/CloudHubs.UnitTests/CloudHubs.UnitTests.csproj" />
+</Solution>

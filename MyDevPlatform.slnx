@@ -1,8 +1,0 @@
-<Solution>
-	<Project Path="src/MyDevPlatform.Api/MyDevPlatform.Api.csproj" />
-	<Project Path="src/MyDevPlatform.Application/MyDevPlatform.Application.csproj" />
-	<Project Path="src/MyDevPlatform.Contracts/MyDevPlatform.Contracts.csproj" />
-	<Project Path="src/MyDevPlatform.Domain/MyDevPlatform.Domain.csproj" />
-	<Project Path="src/MyDevPlatform.Infrastructure/MyDevPlatform.Infrastructure.csproj" />
-	<Project Path="tests/MyDevPlatform.UnitTests/MyDevPlatform.UnitTests.csproj" />
-</Solution>

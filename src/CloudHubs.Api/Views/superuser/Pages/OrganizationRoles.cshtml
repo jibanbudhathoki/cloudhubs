@@ -1,0 +1,101 @@
+@model OrganizationRolesIndexViewModel
+@{
+    Layout = "~/Views/superuser/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Organization roles";
+    ViewData["Section"] = "Organizations";
+}
+
+<section class="page-heading">
+    <div><p class="eyebrow">CONTROL PLANE / ORGANIZATIONS</p><h1>Roles · @Model.OrganizationName</h1><p>Create custom permissions and assign them to organization members.</p></div>
+    <div class="d-flex gap-2">
+        <a class="btn btn-success" href="/su/organization/@Model.OrganizationId/roles/create">Create role</a>
+        <a class="btn btn-outline-secondary" href="/su/organization">Back to organizations</a>
+    </div>
+</section>
+
+<section class="surface mb-4">
+    <div class="surface-heading">
+        <div><h2>Custom roles</h2><p>Owners retain full access. A role assigned to a member cannot be deleted.</p></div>
+        <span class="count">@Model.Roles.Count</span>
+    </div>
+    @if (Model.Roles.Count == 0)
+    {
+        <div class="empty-state"><strong>No custom roles yet</strong><span>Create a role and select the permissions it grants.</span></div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead><tr><th>Role</th><th>Permissions</th><th>Assigned members</th><th>Actions</th></tr></thead>
+                <tbody>
+                    @foreach (var role in Model.Roles)
+                    {
+                        <tr>
+                            <td><strong>@role.Name</strong><small class="d-block org-email">@role.Description</small></td>
+                            <td>@role.Permissions.ToString().Replace(", ", ", ")</td>
+                            <td>@role.Members.Count</td>
+                            <td>
+                                <div class="table-actions">
+                                    <a class="btn btn-sm btn-outline-secondary" href="/su/organization/@Model.OrganizationId/roles/@role.Id/edit">Edit</a>
+                                    <form method="post" action="/su/organization/@Model.OrganizationId/roles/@role.Id/delete" onsubmit="return confirm('Delete this role?');">
+                                        @Html.AntiForgeryToken()
+                                        <button class="btn btn-sm btn-outline-danger" type="submit" disabled="@(role.Members.Count > 0)">Delete</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>
+
+<section class="surface">
+    <div class="surface-heading">
+        <div><h2>Member role assignments</h2><p>Choose a custom role, or restore the member’s built-in role.</p></div>
+        <span class="count">@Model.Members.Count</span>
+    </div>
+    @if (Model.Members.Count == 0)
+    {
+        <div class="empty-state"><strong>No organization members</strong><span>Add members to the organization before assigning custom roles.</span></div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead><tr><th>Member</th><th>Member ID</th><th>Current role</th><th>Assign custom role</th></tr></thead>
+                <tbody>
+                    @foreach (var member in Model.Members)
+                    {
+                        <tr>
+                            <td><strong>@member.User.Name</strong><small class="d-block org-email">@member.User.Email</small></td>
+                            <td><code>@member.User.LoginId</code></td>
+                            <td>@(member.CustomRole?.Name ?? member.Role.ToString())</td>
+                            <td>
+                                @if (member.Role == CloudHubs.Domain.Organizations.OrganizationMemberRole.Owner)
+                                {
+                                    <span>Owner (full access)</span>
+                                }
+                                else
+                                {
+                                    <form class="d-flex gap-2" method="post" action="/su/organization/@Model.OrganizationId/roles/members/@member.UserId/role">
+                                        @Html.AntiForgeryToken()
+                                        <select class="form-select form-select-sm" name="roleId" aria-label="Custom role for @member.User.Name">
+                                            <option value="">Built-in: @member.Role</option>
+                                            @foreach (var role in Model.Roles)
+                                            {
+                                                <option value="@role.Id" selected="@(member.CustomRoleId == role.Id ? "selected" : null)">@role.Name</option>
+                                            }
+                                        </select>
+                                        <button class="btn btn-sm btn-outline-secondary" type="submit">Save</button>
+                                    </form>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>

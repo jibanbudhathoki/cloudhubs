@@ -1,0 +1,57 @@
+@using CloudHubs.Domain.Subscriptions
+@model SubscriptionPlanFormViewModel
+@{
+    Layout = "~/Views/superuser/Shared/_Layout.cshtml";
+    var isEdit = Model.Id.HasValue;
+    ViewData["Title"] = isEdit ? "Edit subscription plan" : "Create subscription plan";
+    ViewData["Section"] = "Plans";
+}
+
+<section class="page-heading">
+    <div><p class="eyebrow">CONTROL PLANE / BILLING</p><h1>@ViewData["Title"]</h1><p>Configure reusable billing terms and plan features.</p></div>
+    <a class="btn btn-outline-secondary" href="/su/plans">Back to plans</a>
+</section>
+
+<form class="surface admin-form" method="post" action="@(isEdit ? $"/su/plans/{Model.Id}/edit" : "/su/plans/create")">
+    @Html.AntiForgeryToken()
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div class="alert alert-danger" asp-validation-summary="All" role="alert"></div>
+    }
+    <h2>Plan details</h2>
+    <div class="mb-3"><label class="form-label" asp-for="Name">Plan name</label><input class="form-control" asp-for="Name" required /><span class="text-danger" asp-validation-for="Name"></span></div>
+    <div class="mb-3"><label class="form-label" asp-for="Description">Description</label><textarea class="form-control" asp-for="Description" rows="3"></textarea><span class="text-danger" asp-validation-for="Description"></span></div>
+    <div class="row g-3 mb-4">
+        <div class="col-md-4"><label class="form-label" asp-for="Price">Price</label><input class="form-control" asp-for="Price" type="number" min="0" max="9999999999" step="0.01" required /><span class="text-danger" asp-validation-for="Price"></span></div>
+        <div class="col-md-4"><label class="form-label" asp-for="Currency">Currency</label><input class="form-control text-uppercase" asp-for="Currency" maxlength="3" required /><span class="text-danger" asp-validation-for="Currency"></span></div>
+        <div class="col-md-4"><label class="form-label" asp-for="BillingInterval">Billing interval</label><select class="form-select" asp-for="BillingInterval" asp-items="Html.GetEnumSelectList<SubscriptionBillingInterval>()"></select><span class="text-danger" asp-validation-for="BillingInterval"></span></div>
+    </div>
+    <div class="mb-4"><label class="form-label" asp-for="TrialDays">Trial duration (days)</label><input class="form-control" asp-for="TrialDays" type="number" min="0" max="365" /><span class="form-text">0 means no trial.</span><span class="text-danger" asp-validation-for="TrialDays"></span></div>
+
+    <h2>Organization limits</h2>
+    <p class="form-text">Set a limit to 0 for unlimited.</p>
+    <div class="row g-3 mb-4">
+        <div class="col-md-4"><label class="form-label" asp-for="MaxProjects">Maximum projects</label><input class="form-control" asp-for="MaxProjects" type="number" min="0" /><span class="text-danger" asp-validation-for="MaxProjects"></span></div>
+        <div class="col-md-4"><label class="form-label" asp-for="MaxMembers">Maximum members</label><input class="form-control" asp-for="MaxMembers" type="number" min="0" /><span class="text-danger" asp-validation-for="MaxMembers"></span></div>
+        <div class="col-md-4"><label class="form-label" asp-for="StorageLimitGb">Storage limit (GB)</label><input class="form-control" asp-for="StorageLimitGb" type="number" min="0" /><span class="text-danger" asp-validation-for="StorageLimitGb"></span></div>
+    </div>
+
+    <h2>Included features</h2>
+    <div class="form-check mb-2"><input class="form-check-input" asp-for="HasApiAccess" /><label class="form-check-label" asp-for="HasApiAccess">API access</label></div>
+    <div class="form-check mb-2"><input class="form-check-input" asp-for="HasCustomDomains" /><label class="form-check-label" asp-for="HasCustomDomains">Custom domains</label></div>
+    <div class="form-check mb-2"><input class="form-check-input" asp-for="HasAdvancedAnalytics" /><label class="form-check-label" asp-for="HasAdvancedAnalytics">Advanced analytics</label></div>
+    <div class="form-check mb-2"><input class="form-check-input" asp-for="HasSingleSignOn" /><label class="form-check-label" asp-for="HasSingleSignOn">Single sign-on (OpenID Connect)</label></div>
+    <div class="form-check mb-2"><input class="form-check-input" asp-for="HasAuditLogs" /><label class="form-check-label" asp-for="HasAuditLogs">Organization audit logs</label></div>
+    <div class="form-check mb-2"><input class="form-check-input" asp-for="HasAutomatedBackups" /><label class="form-check-label" asp-for="HasAutomatedBackups">Automated backups</label></div>
+    <div class="form-check mb-2"><input class="form-check-input" asp-for="HasIntegrations" /><label class="form-check-label" asp-for="HasIntegrations">Integrations (webhooks, GitHub, Slack)</label></div>
+    <div class="form-check mb-2"><input class="form-check-input" asp-for="HasCustomRoles" /><label class="form-check-label" asp-for="HasCustomRoles">Custom organization roles</label></div>
+    <div class="form-check mb-2"><input class="form-check-input" asp-for="HasPrioritySupport" /><label class="form-check-label" asp-for="HasPrioritySupport">Priority support</label></div>
+    <div class="mb-4">
+        <label class="form-label" asp-for="SupportResponseHours">Support first-response target (hours)</label>
+        <input class="form-control" asp-for="SupportResponseHours" type="number" min="0" max="720" />
+        <span class="form-text">0 means no response-time SLA. This records the plan target; support ticketing is not yet available.</span>
+        <span class="text-danger" asp-validation-for="SupportResponseHours"></span>
+    </div>
+    <div class="form-check mb-4"><input class="form-check-input" asp-for="IsActive" /><label class="form-check-label" asp-for="IsActive">Available for new organizations</label></div>
+    <div class="form-actions"><a class="btn btn-outline-secondary" href="/su/plans">Cancel</a><button class="btn btn-success" type="submit">@(isEdit ? "Save changes" : "Create plan")</button></div>
+</form>

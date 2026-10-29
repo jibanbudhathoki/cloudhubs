@@ -1,0 +1,58 @@
+@model CloudHubs.Api.Features.Organizations.OrganizationLoginViewModel
+@{
+    Layout = null;
+    ViewData["Title"] = "Organization sign in";
+    var loginErrors = ViewData.ModelState.Values
+        .SelectMany(state => state.Errors)
+        .Select(error => error.ErrorMessage)
+        .Where(message => !string.IsNullOrWhiteSpace(message))
+        .Distinct()
+        .ToArray();
+}
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Organization sign in - CloudHubs</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/portal.css" />
+</head>
+<body class="login-page">
+    <main class="login-shell">
+        <a class="brand" href="/organization">
+            <span class="brand-mark">C</span>
+            <span><strong>CloudHubs</strong><small>ORGANIZATION</small></span>
+        </a>
+        <section class="login-panel">
+            <p class="eyebrow">ORGANIZATION PORTAL</p>
+            <h1>Sign in</h1>
+            <p>Sign in with the admin email or member ID and its password.</p>
+            @if (loginErrors.Length > 0)
+            {
+                <div class="alert alert-danger" role="alert" aria-live="assertive">
+                    <strong>Sign in failed.</strong>
+                    <ul class="mb-0 mt-2">
+                        @foreach (var error in loginErrors)
+                        {
+                            <li>@error</li>
+                        }
+                    </ul>
+                </div>
+            }
+            <form method="post" action="/login" class="login-form">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="oId" id="organization-context" value="@Model.OrganizationContext" autocomplete="off" />
+                <label asp-for="Identifier">Email or Member ID</label>
+                <input asp-for="Identifier" class="form-control" autocomplete="username" required />
+                <span asp-validation-for="Identifier" class="text-danger"></span>
+                <label asp-for="Password">Password</label>
+                <input asp-for="Password" class="form-control" autocomplete="current-password" required />
+                <span asp-validation-for="Password" class="text-danger"></span>
+                <button class="btn btn-success w-100 mt-3" type="submit">Sign in</button>
+            </form>
+        </section>
+        <span class="login-back">Sign in with an account that belongs to an active organization.</span>
+    </main>
+</body>
+</html>

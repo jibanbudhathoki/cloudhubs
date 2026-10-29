@@ -1,0 +1,79 @@
+@model CloudHubs.Api.Features.Organizations.OrganizationPortalIndexViewModel
+@{
+    Layout = null;
+    ViewData["Title"] = "Your organizations";
+}
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Your organizations - CloudHubs</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/portal.css" />
+</head>
+<body class="login-page">
+    <main class="container py-5">
+        <header class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <p class="eyebrow mb-1">ORGANIZATION PORTAL</p>
+                <h1 class="h2 mb-0">Welcome, @Model.UserName</h1>
+                @if (!string.IsNullOrWhiteSpace(Model.UserEmail))
+                {
+                    <p class="text-body-secondary mb-0">Signed in as @Model.UserEmail</p>
+                }
+            </div>
+            <form method="post" action="/organization/logout">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-outline-secondary">Sign out</button>
+            </form>
+        </header>
+
+        @if (Model.RequiresOrganizationSelection)
+        {
+            <h2 class="h4 mb-3">Choose an organization</h2>
+        }
+        else
+        {
+            <h2 class="h4 mb-3">Organization</h2>
+        }
+        @if (Model.Organizations.Count == 0)
+        {
+            <div class="alert alert-info" role="status">
+                You are signed in, but do not currently have access to an active organization.
+            </div>
+        }
+        else
+        {
+            <div class="row g-3">
+                @foreach (var organization in Model.Organizations)
+                {
+                    <div class="col-12 col-md-6 col-xl-4">
+                        <article class="card h-100 shadow-sm">
+                            <div class="card-body">
+                                <h3 class="h5 card-title">@organization.Name</h3>
+                                <p class="card-text text-body-secondary mb-2">
+                                    <span class="d-block small">Organization contact email</span>
+                                    @organization.Email
+                                </p>
+                                <span class="badge text-bg-light">@organization.Role</span>
+                                @if (Model.RequiresOrganizationSelection)
+                                {
+                                    <form method="post" action="/organization/select" class="mt-3">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="organizationId" value="@organization.Id" />
+                                        <button type="submit" class="btn btn-success">Open organization</button>
+                                    </form>
+                                }
+                            </div>
+                        </article>
+                    </div>
+                }
+            </div>
+        }
+        <p class="text-body-secondary mt-4 mb-0">
+            Organization project and member management is not yet available in the browser portal.
+        </p>
+    </main>
+</body>
+</html>

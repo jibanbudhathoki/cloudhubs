@@ -1,0 +1,233 @@
+@using CloudHubs.Domain.Organizations
+@using CloudHubs.Domain.Subscriptions
+@using CloudHubs.Domain.Users
+@model OrganizationFormViewModel
+@{
+    Layout = "~/Views/superuser/Shared/_Layout.cshtml";
+    var isEdit = Model.Id.HasValue;
+    var availableUsers = ViewData["AvailableUsers"] as IReadOnlyCollection<User> ?? [];
+    var availablePlans = ViewData["AvailablePlans"] as IReadOnlyCollection<SubscriptionPlan> ?? [];
+    ViewData["Title"] = isEdit ? "Edit organization" : "Create organization";
+    ViewData["Section"] = "Organizations";
+}
+
+<section class="page-heading">
+    <div><p class="eyebrow">CONTROL PLANE / ORGANIZATIONS</p><h1>@ViewData["Title"]</h1><p>Set up the organization, its primary owner/admin, and members.</p></div>
+    <a class="btn btn-outline-secondary" href="/su/organization">Back to organizations</a>
+</section>
+
+<form class="surface admin-form" method="post" action="@(isEdit ? $"/su/organization/{Model.Id}/edit" : "/su/organization/create")">
+    @Html.AntiForgeryToken()
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div class="alert alert-danger" asp-validation-summary="All" role="alert"></div>
+    }
+    <div class="mb-3"><label class="form-label" asp-for="Name">Organization name</label><input class="form-control" asp-for="Name" autocomplete="organization" required /><span class="text-danger" asp-validation-for="Name"></span></div>
+    <div class="mb-3"><label class="form-label" asp-for="Email">Organization contact email</label><input class="form-control" asp-for="Email" type="email" autocomplete="email" required /><span class="text-danger" asp-validation-for="Email"></span></div>
+    @if (isEdit)
+    {
+        <div class="mb-3"><label class="form-label" asp-for="Slug">Slug</label><input class="form-control" asp-for="Slug" autocapitalize="none" spellcheck="false" required /><span class="form-text">Used in the organization URL.</span><span class="text-danger" asp-validation-for="Slug"></span></div>
+    }
+    else
+    {
+        <p class="form-text mb-4">The organization URL slug will be generated automatically from its name.</p>
+    }
+    @if (!isEdit)
+    {
+        <div class="mb-4">
+            <label class="form-label" asp-for="SubscriptionPlanId">Subscription plan</label>
+            <select class="form-select" asp-for="SubscriptionPlanId" required>
+                <option value="">Select a plan</option>
+                @foreach (var plan in availablePlans)
+                {
+                    var interval = plan.BillingInterval == SubscriptionBillingInterval.Monthly ? "month" : "year";
+                    <option value="@plan.Id">@plan.Name — @plan.Currency @plan.Price.ToString("0.00")/@interval</option>
+                }
+            </select>
+            <span class="form-text">The plan’s billing interval, trial, and included features are assigned to the organization.</span>
+            <span class="text-danger" asp-validation-for="SubscriptionPlanId"></span>
+            @if (availablePlans.Count == 0)
+            {
+                <div class="alert alert-warning mt-2" role="status">Create an active subscription plan before creating an organization.</div>
+            }
+        </div>
+        <section class="surface mb-4 p-3" aria-labelledby="organization-owner-heading">
+            <h2 id="organization-owner-heading">Organization owner/admin</h2>
+            <p class="form-text">Choose an existing active user or create the owner/admin account now.</p>
+            <div class="mb-3">
+                <label class="form-label" asp-for="AdminMode">Owner/admin account</label>
+                <select class="form-select" asp-for="AdminMode" id="admin-mode">
+                    <option value="existing">Choose an existing user</option>
+                    <option value="new">Create a new user</option>
+                </select>
+                <span class="text-danger" asp-validation-for="AdminMode"></span>
+            </div>
+            <div id="admin-existing-fields" hidden="@(Model.AdminMode != "existing" ? "hidden" : null)">
+                <label class="form-label" asp-for="AdminUserId">Owner/admin email</label>
+                <select class="form-select" asp-for="AdminUserId">
+                    <option value="">Select a user</option>
+                    @foreach (var user in availableUsers)
+                    {
+                        <option value="@user.Id">@user.Name — @user.Email</option>
+                    }
+                </select>
+                <span class="text-danger" asp-validation-for="AdminUserId"></span>
+            </div>
+            <div id="admin-new-fields" hidden="@(Model.AdminMode != "new" ? "hidden" : null)">
+                <div class="mb-3"><label class="form-label" asp-for="AdminName">Admin full name</label><input class="form-control" asp-for="AdminName" autocomplete="name" /><span class="text-danger" asp-validation-for="AdminName"></span></div>
+                <div class="mb-3"><label class="form-label" asp-for="AdminEmail">Admin email</label><input class="form-control" asp-for="AdminEmail" type="email" autocomplete="email" /><span class="text-danger" asp-validation-for="AdminEmail"></span></div>
+                <div><label class="form-label" asp-for="AdminPassword">Admin password</label><input class="form-control" asp-for="AdminPassword" type="password" autocomplete="new-password" /><span class="form-text">Must meet the platform password policy.</span><span class="text-danger" asp-validation-for="AdminPassword"></span></div>
+            </div>
+        </section>
+
+        <section class="surface mb-4 p-3" aria-labelledby="organization-members-heading">
+            <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
+                <div><h2 id="organization-members-heading">Organization members</h2><p class="form-text mb-0">Add existing users or create member accounts inline.</p></div>
+                <button class="btn btn-outline-secondary" type="button" id="add-member">Add member</button>
+            </div>
+            <div id="member-rows">
+                @for (var index = 0; index < Model.Members.Count; index++)
+                {
+                    var member = Model.Members[index];
+                    <div class="member-row border rounded p-3 mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <label class="form-label mb-0" for="Members_@(index)__Mode">Member account</label>
+                            <button class="btn btn-sm btn-outline-danger remove-member" type="button">Remove</button>
+                        </div>
+                        <select class="form-select member-mode mb-3" id="Members_@(index)__Mode" name="Members[@index].Mode">
+                            <option value="existing" selected="@(member.Mode == "existing" ? "selected" : null)">Choose existing user</option>
+                            <option value="new" selected="@(member.Mode == "new" ? "selected" : null)">Create a new user</option>
+                        </select>
+                        <div class="member-existing-fields" hidden="@(member.Mode != "existing" ? "hidden" : null)">
+                            <label class="form-label" for="Members_@(index)__UserId">User</label>
+                            <select class="form-select mb-3" id="Members_@(index)__UserId" name="Members[@index].UserId">
+                                <option value="">Select a user</option>
+                                @foreach (var user in availableUsers)
+                                {
+                                    <option value="@user.Id" selected="@(member.UserId == user.Id ? "selected" : null)">@user.Name — @user.Email</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="member-new-fields" hidden="@(member.Mode != "new" ? "hidden" : null)">
+                            <div class="mb-3"><label class="form-label" for="Members_@(index)__Name">Full name</label><input class="form-control" id="Members_@(index)__Name" name="Members[@index].Name" value="@member.Name" autocomplete="name" /></div>
+                            <div class="mb-3"><label class="form-label" for="Members_@(index)__Email">Email</label><input class="form-control" id="Members_@(index)__Email" name="Members[@index].Email" value="@member.Email" type="email" autocomplete="email" /></div>
+                            <div class="mb-3"><label class="form-label" for="Members_@(index)__Password">Password</label><input class="form-control" id="Members_@(index)__Password" name="Members[@index].Password" value="" type="password" autocomplete="new-password" /><span class="form-text">Must meet the platform password policy.</span></div>
+                        </div>
+                        <label class="form-label" for="Members_@(index)__Role">Organization role</label>
+                        <select class="form-select" id="Members_@(index)__Role" name="Members[@index].Role">
+                            <option value="@OrganizationMemberRole.Admin" selected="@(member.Role == OrganizationMemberRole.Admin ? "selected" : null)">Admin</option>
+                            <option value="@OrganizationMemberRole.Developer" selected="@(member.Role == OrganizationMemberRole.Developer ? "selected" : null)">Developer</option>
+                            <option value="@OrganizationMemberRole.Viewer" selected="@(member.Role == OrganizationMemberRole.Viewer ? "selected" : null)">Viewer</option>
+                        </select>
+                    </div>
+                }
+            </div>
+        </section>
+
+        <template id="member-row-template">
+            <div class="member-row border rounded p-3 mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <label class="form-label mb-0" for="Members___index____Mode">Member account</label>
+                    <button class="btn btn-sm btn-outline-danger remove-member" type="button">Remove</button>
+                </div>
+                <select class="form-select member-mode mb-3" id="Members___index____Mode" name="Members[__index__].Mode">
+                    <option value="existing">Choose existing user</option>
+                    <option value="new">Create a new user</option>
+                </select>
+                <div class="member-existing-fields">
+                    <label class="form-label" for="Members___index____UserId">User</label>
+                    <select class="form-select mb-3" id="Members___index____UserId" name="Members[__index__].UserId">
+                        <option value="">Select a user</option>
+                        @foreach (var user in availableUsers)
+                        {
+                            <option value="@user.Id">@user.Name — @user.Email</option>
+                        }
+                    </select>
+                </div>
+                <div class="member-new-fields" hidden>
+                    <div class="mb-3"><label class="form-label" for="Members___index____Name">Full name</label><input class="form-control" id="Members___index____Name" name="Members[__index__].Name" autocomplete="name" /></div>
+                    <div class="mb-3"><label class="form-label" for="Members___index____Email">Email</label><input class="form-control" id="Members___index____Email" name="Members[__index__].Email" type="email" autocomplete="email" /></div>
+                    <div class="mb-3"><label class="form-label" for="Members___index____Password">Password</label><input class="form-control" id="Members___index____Password" name="Members[__index__].Password" type="password" autocomplete="new-password" /><span class="form-text">Must meet the platform password policy.</span></div>
+                </div>
+                <label class="form-label" for="Members___index____Role">Organization role</label>
+                <select class="form-select" id="Members___index____Role" name="Members[__index__].Role">
+                    <option value="@OrganizationMemberRole.Admin">Admin</option>
+                    <option value="@OrganizationMemberRole.Developer" selected>Developer</option>
+                    <option value="@OrganizationMemberRole.Viewer">Viewer</option>
+                </select>
+            </div>
+        </template>
+    }
+    @if (isEdit)
+    {
+        <div class="mb-3"><label class="form-label" asp-for="Status">Status</label><select class="form-select" asp-for="Status"><option value="Draft">Draft</option><option value="Active">Active</option><option value="Suspended">Suspended</option><option value="Archived">Archived</option></select><span class="text-danger" asp-validation-for="Status"></span></div>
+    }
+    <div class="form-actions"><a class="btn btn-outline-secondary" href="/su/organization">Cancel</a><button class="btn btn-success" type="submit">@(isEdit ? "Save changes" : "Create organization")</button></div>
+</form>
+
+<script>
+        (() => {
+            const adminMode = document.getElementById("admin-mode");
+            if (!adminMode) return;
+            const adminExisting = document.getElementById("admin-existing-fields");
+            const adminNew = document.getElementById("admin-new-fields");
+            const memberRows = document.getElementById("member-rows");
+            const memberTemplate = document.getElementById("member-row-template");
+
+            function updateAdminFields() {
+                adminExisting.hidden = adminMode.value !== "existing";
+                adminNew.hidden = adminMode.value !== "new";
+            }
+
+            function updateMemberFields(row) {
+                const isNew = row.querySelector(".member-mode").value === "new";
+                row.querySelector(".member-existing-fields").hidden = isNew;
+                row.querySelector(".member-new-fields").hidden = !isNew;
+            }
+
+            function reindexMemberRows() {
+                memberRows.querySelectorAll(".member-row").forEach((row, index) => {
+                    row.querySelectorAll("[name], [id], [for]").forEach(element => {
+                        for (const attribute of ["name", "id", "for"]) {
+                            if (element.hasAttribute(attribute)) {
+                                const value = element.getAttribute(attribute)
+                                    .replace(/Members\[\d+\]/g, `Members[${index}]`)
+                                    .replace(/Members_\d+__/g, `Members_${index}__`);
+                                element.setAttribute(attribute, value);
+                            }
+                        }
+                    });
+                });
+            }
+
+            adminMode.addEventListener("change", updateAdminFields);
+            document.getElementById("add-member").addEventListener("click", () => {
+                const index = memberRows.querySelectorAll(".member-row").length;
+                const row = memberTemplate.content.cloneNode(true);
+                row.querySelectorAll("[name], [id], [for]").forEach(element => {
+                    for (const attribute of ["name", "id", "for"]) {
+                        if (element.hasAttribute(attribute)) {
+                            element.setAttribute(attribute, element.getAttribute(attribute).replaceAll("__index__", index));
+                        }
+                    }
+                });
+                memberRows.appendChild(row);
+                reindexMemberRows();
+                updateMemberFields(memberRows.lastElementChild);
+            });
+            memberRows.addEventListener("change", event => {
+                if (event.target.classList.contains("member-mode")) {
+                    updateMemberFields(event.target.closest(".member-row"));
+                }
+            });
+            memberRows.addEventListener("click", event => {
+                if (event.target.closest(".remove-member")) {
+                    event.target.closest(".member-row").remove();
+                    reindexMemberRows();
+                }
+            });
+
+            updateAdminFields();
+            memberRows.querySelectorAll(".member-row").forEach(updateMemberFields);
+        })();
+</script>

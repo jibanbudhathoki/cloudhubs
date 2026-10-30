@@ -14,6 +14,8 @@ public class Organization
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
     public Subscription? Subscription { get; set; }
+    public Guid? AccountSubscriptionId { get; set; }
+    public AccountSubscription? AccountSubscription { get; set; }
     public ICollection<OrganizationMembership> Members { get; set; } = new List<OrganizationMembership>();
 
     public bool IsAvailableForUse()
@@ -23,6 +25,8 @@ public class Organization
             return false;
         }
 
-        return Subscription is null || Subscription.IsAvailable();
+        return AccountSubscriptionId is not null
+            ? AccountSubscription?.IsAvailable() == true
+            : Subscription is null || Subscription.IsAvailable();
     }
 }

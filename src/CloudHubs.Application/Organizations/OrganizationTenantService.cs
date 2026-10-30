@@ -33,7 +33,8 @@ public class OrganizationTenantService(
         {
             throw new UnauthorizedAccessException("The organization or its subscription is not active.");
         }
-        if (organization.Subscription?.Plan is not { } plan)
+        var activePlan = organization.AccountSubscription?.Plan ?? organization.Subscription?.Plan;
+        if (activePlan is not { } plan)
         {
             throw new UnauthorizedAccessException("The organization has no subscription plan with configured entitlements.");
         }
@@ -52,9 +53,10 @@ public class OrganizationTenantService(
     public async Task<IReadOnlyCollection<Project>> GetProjectsAsync(
         Guid organizationId,
         Guid userId,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        bool requireApiAccess = true)
     {
-        await RequireAccessAsync(organizationId, userId, OrganizationPermission.ViewProjects, true, cancellationToken);
+        await RequireAccessAsync(organizationId, userId, OrganizationPermission.ViewProjects, requireApiAccess, cancellationToken);
         return await projectRepository.GetAllAsync(organizationId, cancellationToken);
     }
 
@@ -66,11 +68,13 @@ public class OrganizationTenantService(
         string? description,
         string? rootPath,
         string? templateId,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        bool requireApiAccess = true)
     {
         var organization = await RequireAccessAsync(
-            organizationId, userId, OrganizationPermission.ManageProjects, true, cancellationToken);
-        var plan = organization.Subscription!.Plan!;
+            organizationId, userId, OrganizationPermission.ManageProjects, requireApiAccess, cancellationToken);
+        var plan = organization.AccountSubscription?.Plan ?? organization.Subscription?.Plan
+            ?? throw new UnauthorizedAccessException("The organization has no subscription plan with configured entitlements.");
         if (string.IsNullOrWhiteSpace(name) || name.Trim().Length > 200)
             throw new ArgumentException("Project name is required and must be 200 characters or fewer.", nameof(name));
         if (string.IsNullOrWhiteSpace(slug) || slug.Trim().Length > 120 || !IsSlug(slug))
@@ -103,9 +107,10 @@ public class OrganizationTenantService(
         Guid organizationId,
         Guid projectId,
         Guid userId,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        bool requireApiAccess = true)
     {
-        await RequireAccessAsync(organizationId, userId, OrganizationPermission.ManageProjects, true, cancellationToken);
+        await RequireAccessAsync(organizationId, userId, OrganizationPermission.ManageProjects, requireApiAccess, cancellationToken);
         var project = await projectRepository.GetByIdAsync(organizationId, projectId, cancellationToken);
         return project is not null && await projectRepository.DeleteAsync(project, cancellationToken);
     }
@@ -119,9 +124,10 @@ public class OrganizationTenantService(
         string? description,
         string? rootPath,
         string? templateId,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        bool requireApiAccess = true)
     {
-        await RequireAccessAsync(organizationId, userId, OrganizationPermission.ManageProjects, true, cancellationToken);
+        await RequireAccessAsync(organizationId, userId, OrganizationPermission.ManageProjects, requireApiAccess, cancellationToken);
         var project = await projectRepository.GetByIdAsync(organizationId, projectId, cancellationToken);
         if (project is null) return null;
 
@@ -154,9 +160,10 @@ public class OrganizationTenantService(
     public async Task<IReadOnlyCollection<OrganizationMembership>> GetMembersAsync(
         Guid organizationId,
         Guid userId,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        bool requireApiAccess = true)
     {
-        await RequireAccessAsync(organizationId, userId, OrganizationPermission.ViewMembers, true, cancellationToken);
+        await RequireAccessAsync(organizationId, userId, OrganizationPermission.ViewMembers, requireApiAccess, cancellationToken);
         return await roleRepository.GetMembersAsync(organizationId, cancellationToken);
     }
 
@@ -165,14 +172,16 @@ public class OrganizationTenantService(
         Guid actorId,
         string email,
         OrganizationMemberRole role,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        bool requireApiAccess = true)
     {
         var organization = await RequireAccessAsync(
-            organizationId, actorId, OrganizationPermission.ManageMembers, true, cancellationToken);
+            organizationId, actorId, OrganizationPermission.ManageMembers, requireApiAccess, cancellationToken);
         if (role is OrganizationMemberRole.Owner || !Enum.IsDefined(role))
             throw new ArgumentException("Choose a valid non-owner organization role.", nameof(role));
 
-        var plan = organization.Subscription!.Plan!;
+        var plan = organization.AccountSubscription?.Plan ?? organization.Subscription?.Plan
+            ?? throw new UnauthorizedAccessException("The organization has no subscription plan with configured entitlements.");
         var user = await userRepository.GetByEmailAsync(email.Trim().ToLowerInvariant(), cancellationToken);
         if (user is null || !user.IsActive || string.IsNullOrWhiteSpace(user.PasswordHash))
             throw new ArgumentException("No active user with sign-in credentials was found for this email.", nameof(email));
@@ -187,13 +196,35 @@ public class OrganizationTenantService(
         }, plan.MaxMembers, cancellationToken);
     }
 
+    public async Task<OrganizationMembership> CreateMemberAsync(
+        Guid organizationId,
+        Guid actorId,
+        User member,
+        OrganizationMemberRole role,
+        CancellationToken cancellationToken = default,
+        bool requireApiAccess = true)
+    {
+        var organization = await RequireAccessAsync(
+            organizationId, actorId, OrganizationPermission.ManageMembers, requireApiAccess, cancellationToken);
+        if (role is OrganizationMemberRole.Owner || !Enum.IsDefined(role))
+            throw new ArgumentException("Choose a valid non-owner organization role.", nameof(role));
+        if (member.Role == UserRole.Superuser)
+            throw new ArgumentException("Superusers cannot be added as organization members.", nameof(member));
+
+        var plan = organization.AccountSubscription?.Plan ?? organization.Subscription?.Plan
+            ?? throw new UnauthorizedAccessException("The organization has no subscription plan with configured entitlements.");
+        return await roleRepository.AddNewMemberIfBelowLimitAsync(
+            member, organizationId, role, plan.MaxMembers, cancellationToken);
+    }
+
     public async Task<bool> RemoveMemberAsync(
         Guid organizationId,
         Guid actorId,
         Guid memberId,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        bool requireApiAccess = true)
     {
-        await RequireAccessAsync(organizationId, actorId, OrganizationPermission.ManageMembers, true, cancellationToken);
+        await RequireAccessAsync(organizationId, actorId, OrganizationPermission.ManageMembers, requireApiAccess, cancellationToken);
         if (actorId == memberId)
             throw new InvalidOperationException("You cannot remove your own organization membership.");
         return await roleRepository.RemoveMembershipAsync(organizationId, memberId, cancellationToken);
@@ -205,9 +236,10 @@ public class OrganizationTenantService(
         Guid memberId,
         OrganizationMemberRole role,
         Guid? customRoleId,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        bool requireApiAccess = true)
     {
-        await RequireAccessAsync(organizationId, actorId, OrganizationPermission.ManageMembers, true, cancellationToken);
+        await RequireAccessAsync(organizationId, actorId, OrganizationPermission.ManageMembers, requireApiAccess, cancellationToken);
         if (role == OrganizationMemberRole.Owner || !Enum.IsDefined(role))
             throw new ArgumentException("Choose a valid non-owner organization role.", nameof(role));
 

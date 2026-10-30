@@ -45,8 +45,13 @@ public class SubscriptionPlanRepository(CloudHubsDbContext dbContext) : ISubscri
             .Select(group => new { PlanId = group.Key, Count = group.Count() })
             .ToDictionaryAsync(item => item.PlanId, item => item.Count, cancellationToken);
 
-    public Task<bool> IsAssignedAsync(Guid id, CancellationToken cancellationToken = default) =>
-        dbContext.Subscriptions.AnyAsync(subscription => subscription.PlanId == id, cancellationToken);
+    public async Task<bool> IsAssignedAsync(Guid id, CancellationToken cancellationToken = default) =>
+        await dbContext.Subscriptions.AnyAsync(subscription => subscription.PlanId == id, cancellationToken)
+        || await dbContext.AccountSubscriptions.AnyAsync(subscription => subscription.PlanId == id, cancellationToken)
+        || await dbContext.SubscriptionPurchases.AnyAsync(
+            purchase => purchase.PlanId == id
+                && purchase.Status != SubscriptionPurchaseStatus.Rejected,
+            cancellationToken);
 
     public async Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {

@@ -9,6 +9,7 @@ public class SubscriptionPlan
     public decimal Price { get; set; }
     public SubscriptionBillingInterval BillingInterval { get; set; } = SubscriptionBillingInterval.Monthly;
     public int TrialDays { get; set; }
+    public int MaxOrganizations { get; set; }
     public int MaxProjects { get; set; }
     public int MaxMembers { get; set; }
     public int StorageLimitGb { get; set; }

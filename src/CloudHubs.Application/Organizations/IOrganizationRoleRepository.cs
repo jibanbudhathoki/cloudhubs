@@ -1,4 +1,5 @@
 using CloudHubs.Domain.Organizations;
+using CloudHubs.Domain.Users;
 
 namespace CloudHubs.Application.Organizations;
 
@@ -16,6 +17,12 @@ public interface IOrganizationRoleRepository
     Task<IReadOnlyCollection<OrganizationMembership>> GetMembershipsForUserAsync(Guid userId, CancellationToken cancellationToken = default);
     Task<OrganizationMembership> AddMembershipAsync(OrganizationMembership membership, CancellationToken cancellationToken = default);
     Task<OrganizationMembership> AddMembershipIfBelowLimitAsync(OrganizationMembership membership, int maximumMembers, CancellationToken cancellationToken = default);
+    Task<OrganizationMembership> AddNewMemberIfBelowLimitAsync(
+        User user,
+        Guid organizationId,
+        OrganizationMemberRole role,
+        int maximumMembers,
+        CancellationToken cancellationToken = default);
     Task<bool> SaveMembershipAsync(OrganizationMembership membership, CancellationToken cancellationToken = default);
     Task<bool> RemoveMembershipAsync(Guid organizationId, Guid userId, CancellationToken cancellationToken = default);
 }

@@ -22,6 +22,8 @@ public class CloudHubsDbContext : DbContext
     public DbSet<AuditLogEntry> AuditLogEntries => Set<AuditLogEntry>();
     public DbSet<Subscription> Subscriptions => Set<Subscription>();
     public DbSet<SubscriptionPlan> SubscriptionPlans => Set<SubscriptionPlan>();
+    public DbSet<AccountSubscription> AccountSubscriptions => Set<AccountSubscription>();
+    public DbSet<SubscriptionPurchase> SubscriptionPurchases => Set<SubscriptionPurchase>();
     public DbSet<PlatformSettings> PlatformSettings => Set<PlatformSettings>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -37,6 +39,10 @@ public class CloudHubsDbContext : DbContext
             entity.Property(x => x.ApiKey).HasMaxLength(256);
             entity.Property(x => x.BaseApiUrl).HasMaxLength(500);
             entity.HasIndex(x => x.Slug).IsUnique();
+            entity.HasOne(x => x.AccountSubscription)
+                .WithMany()
+                .HasForeignKey(x => x.AccountSubscriptionId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         modelBuilder.Entity<Subscription>(entity =>
@@ -63,6 +69,45 @@ public class CloudHubsDbContext : DbContext
             entity.Property(x => x.BillingInterval).IsRequired();
             entity.Property(x => x.SupportResponseHours).IsRequired();
             entity.HasIndex(x => x.Name).IsUnique();
+        });
+
+        modelBuilder.Entity<AccountSubscription>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Status).IsRequired();
+            entity.Property(x => x.PlanName).HasMaxLength(100).IsRequired();
+            entity.Property(x => x.Currency).HasMaxLength(3).IsRequired();
+            entity.Property(x => x.Price).HasPrecision(12, 2);
+            entity.Property(x => x.BillingInterval).IsRequired();
+            entity.HasOne(x => x.OwnerUser)
+                .WithOne(x => x.AccountSubscription)
+                .HasForeignKey<AccountSubscription>(x => x.OwnerUserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(x => x.Plan)
+                .WithMany()
+                .HasForeignKey(x => x.PlanId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(x => x.OwnerUserId).IsUnique();
+        });
+
+        modelBuilder.Entity<SubscriptionPurchase>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.Email).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.PlanName).HasMaxLength(100).IsRequired();
+            entity.Property(x => x.Currency).HasMaxLength(3).IsRequired();
+            entity.Property(x => x.Price).HasPrecision(12, 2);
+            entity.Property(x => x.BillingInterval).IsRequired();
+            entity.Property(x => x.Status).IsRequired();
+            entity.Property(x => x.CompletionTokenHash).HasMaxLength(64);
+            entity.HasOne(x => x.Plan)
+                .WithMany()
+                .HasForeignKey(x => x.PlanId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(x => x.Email)
+                .IsUnique()
+                .HasFilter("\"Status\" IN (0, 1)");
         });
 
         modelBuilder.Entity<PlatformSettings>(entity =>

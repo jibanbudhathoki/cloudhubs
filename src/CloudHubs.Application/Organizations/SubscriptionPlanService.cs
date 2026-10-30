@@ -45,6 +45,7 @@ public class SubscriptionPlanService(ISubscriptionPlanRepository repository)
         existing.Price = plan.Price;
         existing.BillingInterval = plan.BillingInterval;
         existing.TrialDays = plan.TrialDays;
+        existing.MaxOrganizations = plan.MaxOrganizations;
         existing.MaxProjects = plan.MaxProjects;
         existing.MaxMembers = plan.MaxMembers;
         existing.StorageLimitGb = plan.StorageLimitGb;
@@ -67,7 +68,7 @@ public class SubscriptionPlanService(ISubscriptionPlanRepository repository)
     {
         if (await repository.IsAssignedAsync(id, cancellationToken))
         {
-            throw new InvalidOperationException("A plan assigned to an organization cannot be deleted. Deactivate it instead.");
+            throw new InvalidOperationException("A plan assigned to an organization or account cannot be deleted. Deactivate it instead.");
         }
 
         return await repository.DeleteAsync(id, cancellationToken);
@@ -89,7 +90,7 @@ public class SubscriptionPlanService(ISubscriptionPlanRepository repository)
             throw new ArgumentException("Choose a valid billing interval.", nameof(plan));
         if (plan.TrialDays is < 0 or > 365)
             throw new ArgumentException("Trial duration must be between 0 and 365 days.", nameof(plan));
-        if (plan.MaxProjects < 0 || plan.MaxMembers < 0 || plan.StorageLimitGb < 0)
+        if (plan.MaxOrganizations < 0 || plan.MaxProjects < 0 || plan.MaxMembers < 0 || plan.StorageLimitGb < 0)
             throw new ArgumentException("Plan limits cannot be negative. Use 0 for unlimited.", nameof(plan));
         if (plan.SupportResponseHours is < 0 or > 720)
             throw new ArgumentException("Support response target must be between 0 and 720 hours. Use 0 for no SLA.", nameof(plan));

@@ -30,7 +30,8 @@ public class OrganizationService
         CreateOrganizationRequest request,
         CancellationToken cancellationToken = default,
         IReadOnlyCollection<OrganizationMembership>? memberships = null,
-        Guid? planId = null)
+        Guid? planId = null,
+        AccountSubscription? accountSubscription = null)
     {
         var settings = await _settingsRepository.GetAsync(cancellationToken);
         if (!settings.AllowOrganizationCreation)
@@ -59,7 +60,8 @@ public class OrganizationService
             Name = request.Name.Trim(),
             Slug = slug,
             Email = request.Email.Trim(),
-            Status = settings.DefaultOrganizationStatus,
+            Status = accountSubscription is null ? settings.DefaultOrganizationStatus : OrganizationStatus.Active,
+            AccountSubscriptionId = accountSubscription?.Id,
             Subscription = new Subscription
             {
                 Status = SubscriptionStatus.Trial,
@@ -85,6 +87,11 @@ public class OrganizationService
             {
                 throw new ArgumentException("Choose an active subscription plan.", nameof(planId));
             }
+            if (accountSubscription is not null
+                && (!accountSubscription.IsAvailable() || accountSubscription.PlanId != plan.Id))
+            {
+                throw new InvalidOperationException("An active account subscription for the selected plan is required.");
+            }
             if (plan.MaxMembers > 0 && memberships is not null && memberships.Count > plan.MaxMembers)
             {
                 throw new InvalidOperationException($"The subscription plan allows up to {plan.MaxMembers} members.");
@@ -102,6 +109,16 @@ public class OrganizationService
             organization.Subscription.ExpiresAt = plan.TrialDays > 0
                 ? DateTime.UtcNow.AddDays(plan.TrialDays)
                 : null;
+            if (accountSubscription is not null)
+            {
+                organization.Subscription.Status = accountSubscription.Status;
+                organization.Subscription.StartsAt = accountSubscription.StartsAt;
+                organization.Subscription.ExpiresAt = accountSubscription.ExpiresAt;
+                organization.Subscription.PlanName = accountSubscription.PlanName;
+                organization.Subscription.Currency = accountSubscription.Currency;
+                organization.Subscription.MonthlyPrice = accountSubscription.Price;
+                organization.Subscription.BillingInterval = accountSubscription.BillingInterval;
+            }
         }
 
         if (memberships is not null)
@@ -136,11 +153,13 @@ public class OrganizationService
             created.Slug,
             created.Email,
             created.Status.ToString(),
-            created.Subscription?.Status.ToString() ?? SubscriptionStatus.Trial.ToString(),
+            created.AccountSubscription?.Status.ToString()
+                ?? created.Subscription?.Status.ToString()
+                ?? SubscriptionStatus.Trial.ToString(),
             created.CreatedAt,
             created.BaseApiUrl,
-            created.Subscription?.PlanName,
-            ToSubscriptionFeatures(created.Subscription?.Plan));
+            created.AccountSubscription?.Plan.Name ?? created.Subscription?.PlanName,
+            ToSubscriptionFeatures(created.AccountSubscription?.Plan ?? created.Subscription?.Plan));
     }
 
     public async Task<OrganizationDetailsDto?> GetOrganizationAsync(Guid id, CancellationToken cancellationToken = default)
@@ -185,6 +204,10 @@ public class OrganizationService
         if (organization is null)
         {
             return false;
+        }
+        if (organization.AccountSubscriptionId is not null)
+        {
+            throw new InvalidOperationException("This organization uses its account subscription. Change the account plan instead.");
         }
 
         var plan = await _planRepository.GetByIdAsync(planId, cancellationToken);
@@ -237,11 +260,13 @@ public class OrganizationService
             organization.Slug,
             organization.Email,
             organization.Status.ToString(),
-            organization.Subscription?.Status.ToString() ?? SubscriptionStatus.Trial.ToString(),
+            organization.AccountSubscription?.Status.ToString()
+                ?? organization.Subscription?.Status.ToString()
+                ?? SubscriptionStatus.Trial.ToString(),
             organization.CreatedAt,
             organization.BaseApiUrl,
-            organization.Subscription?.PlanName,
-            ToSubscriptionFeatures(organization.Subscription?.Plan));
+            organization.AccountSubscription?.Plan.Name ?? organization.Subscription?.PlanName,
+            ToSubscriptionFeatures(organization.AccountSubscription?.Plan ?? organization.Subscription?.Plan));
     }
 
     private static OrganizationSubscriptionFeaturesDto? ToSubscriptionFeatures(SubscriptionPlan? plan) =>
@@ -252,6 +277,7 @@ public class OrganizationService
                 plan.Currency,
                 plan.Price,
                 plan.BillingInterval.ToString(),
+                plan.MaxOrganizations,
                 plan.MaxProjects,
                 plan.MaxMembers,
                 plan.StorageLimitGb,

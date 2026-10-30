@@ -79,6 +79,9 @@ namespace CloudHubs.Infrastructure.Persistence.SchemaChanges
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("AccountSubscriptionId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("ApiKey")
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
@@ -112,6 +115,8 @@ namespace CloudHubs.Infrastructure.Persistence.SchemaChanges
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("AccountSubscriptionId");
 
                     b.HasIndex("Slug")
                         .IsUnique();
@@ -357,6 +362,60 @@ namespace CloudHubs.Infrastructure.Persistence.SchemaChanges
                     b.ToTable("Projects");
                 });
 
+            modelBuilder.Entity("CloudHubs.Domain.Subscriptions.AccountSubscription", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("BillingInterval")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)");
+
+                    b.Property<DateTime?>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("OwnerUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("PlanId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("PlanName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<decimal>("Price")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)");
+
+                    b.Property<DateTime>("StartsAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerUserId")
+                        .IsUnique();
+
+                    b.HasIndex("PlanId");
+
+                    b.ToTable("AccountSubscriptions");
+                });
+
             modelBuilder.Entity("CloudHubs.Domain.Subscriptions.Subscription", b =>
                 {
                     b.Property<Guid>("Id")
@@ -465,6 +524,9 @@ namespace CloudHubs.Infrastructure.Persistence.SchemaChanges
                     b.Property<int>("MaxMembers")
                         .HasColumnType("integer");
 
+                    b.Property<int>("MaxOrganizations")
+                        .HasColumnType("integer");
+
                     b.Property<int>("MaxProjects")
                         .HasColumnType("integer");
 
@@ -495,6 +557,72 @@ namespace CloudHubs.Infrastructure.Persistence.SchemaChanges
                         .IsUnique();
 
                     b.ToTable("SubscriptionPlans");
+                });
+
+            modelBuilder.Entity("CloudHubs.Domain.Subscriptions.SubscriptionPurchase", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("BillingInterval")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("CompletionTokenExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CompletionTokenHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid>("PlanId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("PlanName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<decimal>("Price")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Email")
+                        .IsUnique()
+                        .HasFilter("\"Status\" IN (0, 1)");
+
+                    b.HasIndex("PlanId");
+
+                    b.ToTable("SubscriptionPurchases");
                 });
 
             modelBuilder.Entity("CloudHubs.Domain.Users.User", b =>
@@ -547,6 +675,16 @@ namespace CloudHubs.Infrastructure.Persistence.SchemaChanges
                     b.ToTable("Users");
                 });
 
+            modelBuilder.Entity("CloudHubs.Domain.Organizations.Organization", b =>
+                {
+                    b.HasOne("CloudHubs.Domain.Subscriptions.AccountSubscription", "AccountSubscription")
+                        .WithMany()
+                        .HasForeignKey("AccountSubscriptionId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("AccountSubscription");
+                });
+
             modelBuilder.Entity("CloudHubs.Domain.Organizations.OrganizationMembership", b =>
                 {
                     b.HasOne("CloudHubs.Domain.Organizations.OrganizationRole", "CustomRole")
@@ -584,6 +722,25 @@ namespace CloudHubs.Infrastructure.Persistence.SchemaChanges
                     b.Navigation("Organization");
                 });
 
+            modelBuilder.Entity("CloudHubs.Domain.Subscriptions.AccountSubscription", b =>
+                {
+                    b.HasOne("CloudHubs.Domain.Users.User", "OwnerUser")
+                        .WithOne("AccountSubscription")
+                        .HasForeignKey("CloudHubs.Domain.Subscriptions.AccountSubscription", "OwnerUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("CloudHubs.Domain.Subscriptions.SubscriptionPlan", "Plan")
+                        .WithMany()
+                        .HasForeignKey("PlanId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("OwnerUser");
+
+                    b.Navigation("Plan");
+                });
+
             modelBuilder.Entity("CloudHubs.Domain.Subscriptions.Subscription", b =>
                 {
                     b.HasOne("CloudHubs.Domain.Organizations.Organization", null)
@@ -596,6 +753,17 @@ namespace CloudHubs.Infrastructure.Persistence.SchemaChanges
                         .WithMany()
                         .HasForeignKey("PlanId")
                         .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Plan");
+                });
+
+            modelBuilder.Entity("CloudHubs.Domain.Subscriptions.SubscriptionPurchase", b =>
+                {
+                    b.HasOne("CloudHubs.Domain.Subscriptions.SubscriptionPlan", "Plan")
+                        .WithMany()
+                        .HasForeignKey("PlanId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.Navigation("Plan");
                 });
@@ -614,6 +782,8 @@ namespace CloudHubs.Infrastructure.Persistence.SchemaChanges
 
             modelBuilder.Entity("CloudHubs.Domain.Users.User", b =>
                 {
+                    b.Navigation("AccountSubscription");
+
                     b.Navigation("OrganizationMemberships");
                 });
 #pragma warning restore 612, 618

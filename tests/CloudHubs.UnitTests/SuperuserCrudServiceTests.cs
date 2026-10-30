@@ -114,6 +114,53 @@ public class SuperuserCrudServiceTests
     }
 
     [Fact]
+    public async Task OrganizationCreationLinksPaidAccountSubscriptionAndUsesItsBillingPeriod()
+    {
+        var plan = new SubscriptionPlan
+        {
+            Name = "Account Growth",
+            Currency = "EUR",
+            Price = 49.50m,
+            BillingInterval = SubscriptionBillingInterval.Yearly,
+            MaxMembers = 10
+        };
+        var owner = new User { Name = "Account Owner", Email = "owner@example.com" };
+        var expiresAt = DateTime.UtcNow.AddMonths(11);
+        var accountSubscription = new AccountSubscription
+        {
+            Id = Guid.NewGuid(),
+            OwnerUserId = owner.Id,
+            PlanId = plan.Id,
+            Plan = plan,
+            PlanName = plan.Name,
+            Currency = plan.Currency,
+            Price = plan.Price,
+            BillingInterval = plan.BillingInterval,
+            Status = SubscriptionStatus.Active,
+            StartsAt = DateTime.UtcNow.AddDays(-20),
+            ExpiresAt = expiresAt
+        };
+        var repository = new OrganizationRepositoryStub();
+        var service = new OrganizationService(
+            repository,
+            new PlatformSettingsRepositoryStub(),
+            new SubscriptionPlanRepositoryStub { Plan = plan });
+
+        await service.CreateOrganizationAsync(
+            new CreateOrganizationRequest("Account Child", "contact@example.com", "", "", ""),
+            memberships: [new OrganizationMembership { User = owner, Role = OrganizationMemberRole.Owner }],
+            planId: plan.Id,
+            accountSubscription: accountSubscription);
+
+        var created = repository.AddedOrganization!;
+        Assert.Equal(accountSubscription.Id, created.AccountSubscriptionId);
+        Assert.Equal(SubscriptionStatus.Active, created.Subscription?.Status);
+        Assert.Equal(expiresAt, created.Subscription?.ExpiresAt);
+        Assert.Equal(49.50m, created.Subscription?.MonthlyPrice);
+        Assert.Equal(SubscriptionBillingInterval.Yearly, created.Subscription?.BillingInterval);
+    }
+
+    [Fact]
     public async Task OrganizationCreationRejectsInactiveSubscriptionPlans()
     {
         var plan = new SubscriptionPlan { IsActive = false };
@@ -215,6 +262,7 @@ public class SuperuserCrudServiceTests
             Name = "  Growth  ",
             Currency = "eur",
             Price = 25,
+            MaxOrganizations = 4,
             MaxProjects = 10,
             MaxMembers = 20,
             StorageLimitGb = 50,
@@ -228,6 +276,7 @@ public class SuperuserCrudServiceTests
 
         Assert.Equal("Growth", created.Name);
         Assert.Equal("EUR", created.Currency);
+        Assert.Equal(4, created.MaxOrganizations);
         Assert.True(created.HasSingleSignOn);
         Assert.True(created.HasAuditLogs);
         Assert.True(created.HasAutomatedBackups);
@@ -237,6 +286,8 @@ public class SuperuserCrudServiceTests
         Assert.True(await service.DeletePlanAsync(created.Id));
         await Assert.ThrowsAsync<ArgumentException>(() =>
             service.CreatePlanAsync(new SubscriptionPlan { Name = "Bad", Currency = "US", MaxMembers = -1 }));
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            service.CreatePlanAsync(new SubscriptionPlan { Name = "Bad organization limit", Currency = "USD", MaxOrganizations = -1 }));
         await Assert.ThrowsAsync<ArgumentException>(() =>
             service.CreatePlanAsync(new SubscriptionPlan { Name = "Bad SLA", Currency = "USD", SupportResponseHours = 721 }));
     }
@@ -383,6 +434,52 @@ public class SuperuserCrudServiceTests
     }
 
     [Fact]
+    public async Task OrganizationPortalCanCreateProjectsUsingAnAccountPlanWithoutApiAccess()
+    {
+        var organizationId = Guid.NewGuid();
+        var user = new User { Name = "Developer", Email = "dev@example.com" };
+        var accountSubscription = new AccountSubscription
+        {
+            OwnerUserId = user.Id,
+            Plan = new SubscriptionPlan { HasApiAccess = false, MaxProjects = 2 }
+        };
+        var organization = new Organization
+        {
+            Id = organizationId,
+            AccountSubscriptionId = accountSubscription.Id,
+            AccountSubscription = accountSubscription
+        };
+        var membership = new OrganizationMembership
+        {
+            OrganizationId = organizationId,
+            UserId = user.Id,
+            User = user,
+            Role = OrganizationMemberRole.Developer
+        };
+        var roleRepository = new OrganizationRoleRepositoryStub { Membership = membership };
+        var projectRepository = new OrganizationProjectRepositoryStub();
+        var tenantService = new OrganizationTenantService(
+            new OrganizationRepositoryStub { ExistingOrganization = organization },
+            roleRepository,
+            projectRepository,
+            new UserRepositoryStub { Users = [user] },
+            new OrganizationPermissionService(roleRepository));
+
+        var project = await tenantService.CreateProjectAsync(
+            organizationId,
+            user.Id,
+            "Portal project",
+            "portal-project",
+            "",
+            "",
+            "default",
+            requireApiAccess: false);
+
+        Assert.Equal("portal-project", project.Slug);
+        Assert.Same(project, projectRepository.AddedProject);
+    }
+
+    [Fact]
     public async Task OrganizationProjectCreationUsesUnlimitedPlanAndNormalizesSlug()
     {
         var organizationId = Guid.NewGuid();
@@ -459,6 +556,54 @@ public class SuperuserCrudServiceTests
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             tenantService.AddMemberAsync(organizationId, user.Id, "new@example.com", OrganizationMemberRole.Viewer));
+    }
+
+    [Fact]
+    public async Task OrganizationMemberCreationUsesSelectedOrganizationAndRole()
+    {
+        var organizationId = Guid.NewGuid();
+        var owner = new User { Name = "Owner", Email = "owner@example.com" };
+        var organization = new Organization
+        {
+            Id = organizationId,
+            Subscription = new Subscription
+            {
+                Status = SubscriptionStatus.Active,
+                Plan = new SubscriptionPlan { HasApiAccess = true, MaxMembers = 8 }
+            }
+        };
+        var roleRepository = new OrganizationRoleRepositoryStub
+        {
+            Membership = new OrganizationMembership
+            {
+                OrganizationId = organizationId,
+                UserId = owner.Id,
+                User = owner,
+                Role = OrganizationMemberRole.Owner
+            }
+        };
+        var member = new User
+        {
+            Name = "New member",
+            Email = "new@example.com",
+            LoginId = "IDF15B4C",
+            PasswordHash = "hashed-password",
+            Role = UserRole.Developer
+        };
+        var tenantService = new OrganizationTenantService(
+            new OrganizationRepositoryStub { ExistingOrganization = organization },
+            roleRepository,
+            new OrganizationProjectRepositoryStub(),
+            new UserRepositoryStub { Users = [owner] },
+            new OrganizationPermissionService(roleRepository));
+
+        var membership = await tenantService.CreateMemberAsync(
+            organizationId, owner.Id, member, OrganizationMemberRole.Developer, requireApiAccess: false);
+
+        Assert.Equal(organizationId, membership.OrganizationId);
+        Assert.Equal(member.Id, membership.UserId);
+        Assert.Equal(OrganizationMemberRole.Developer, membership.Role);
+        Assert.Same(member, roleRepository.CreatedMember);
     }
 
     [Fact]
@@ -796,6 +941,7 @@ public class SuperuserCrudServiceTests
         public List<OrganizationRole> Roles { get; init; } = [];
         public OrganizationMembership? Membership { get; init; }
         public IReadOnlyCollection<OrganizationMembership> Memberships { get; init; } = [];
+        public User? CreatedMember { get; private set; }
 
         private IEnumerable<OrganizationMembership> AllMemberships =>
             Membership is null ? Memberships : Memberships.Append(Membership);
@@ -835,6 +981,22 @@ public class SuperuserCrudServiceTests
             if (maximumMembers > 0 && Membership is not null)
                 throw new InvalidOperationException($"The subscription plan allows up to {maximumMembers} members.");
             return Task.FromResult(membership);
+        }
+        public Task<OrganizationMembership> AddNewMemberIfBelowLimitAsync(
+            User user,
+            Guid organizationId,
+            OrganizationMemberRole role,
+            int maximumMembers,
+            CancellationToken cancellationToken = default)
+        {
+            CreatedMember = user;
+            return Task.FromResult(new OrganizationMembership
+            {
+                OrganizationId = organizationId,
+                UserId = user.Id,
+                User = user,
+                Role = role
+            });
         }
         public Task<bool> SaveMembershipAsync(OrganizationMembership membership, CancellationToken cancellationToken = default) => Task.FromResult(true);
         public Task<bool> RemoveMembershipAsync(Guid organizationId, Guid userId, CancellationToken cancellationToken = default) => Task.FromResult(false);

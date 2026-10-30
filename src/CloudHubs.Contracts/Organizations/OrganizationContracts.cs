@@ -37,6 +37,7 @@ public record OrganizationSubscriptionFeaturesDto(
     string Currency,
     decimal Price,
     string BillingInterval,
+    int MaxOrganizations,
     int MaxProjects,
     int MaxMembers,
     int StorageLimitGb,

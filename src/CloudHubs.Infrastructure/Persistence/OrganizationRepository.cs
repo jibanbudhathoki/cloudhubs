@@ -25,7 +25,9 @@ public class OrganizationRepository : IOrganizationRepository
                 x.Slug,
                 x.Email,
                 x.Status.ToString(),
-                x.Subscription != null ? x.Subscription.Status.ToString() : null,
+                x.AccountSubscription != null
+                    ? x.AccountSubscription.Status.ToString()
+                    : x.Subscription != null ? x.Subscription.Status.ToString() : null,
                 x.CreatedAt,
                 x.Members.Where(member => member.Role == OrganizationMemberRole.Owner)
                     .Select(member => member.User.Name)
@@ -34,7 +36,9 @@ public class OrganizationRepository : IOrganizationRepository
                     .Select(member => member.User.Email)
                     .FirstOrDefault(),
                 x.Members.Count(),
-                x.Subscription != null ? x.Subscription.PlanName : null))
+                x.AccountSubscription != null
+                    ? x.AccountSubscription.Plan.Name
+                    : x.Subscription != null ? x.Subscription.PlanName : null))
             .ToListAsync(cancellationToken);
     }
 
@@ -42,6 +46,8 @@ public class OrganizationRepository : IOrganizationRepository
     {
         return await _dbContext.Organizations
             .Include(x => x.Subscription)
+                .ThenInclude(subscription => subscription!.Plan)
+            .Include(x => x.AccountSubscription)
                 .ThenInclude(subscription => subscription!.Plan)
             .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
     }
@@ -60,6 +66,36 @@ public class OrganizationRepository : IOrganizationRepository
 
     public async Task<Organization> AddAsync(Organization organization, CancellationToken cancellationToken = default)
     {
+        if (organization.AccountSubscriptionId is Guid accountSubscriptionId)
+        {
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+            var lockedSubscriptions = await _dbContext.AccountSubscriptions
+                .FromSqlInterpolated($"SELECT * FROM \"AccountSubscriptions\" WHERE \"Id\" = {accountSubscriptionId} FOR UPDATE")
+                .ToListAsync(cancellationToken);
+            if (lockedSubscriptions.Count == 0)
+            {
+                throw new InvalidOperationException("The account subscription for this organization is unavailable.");
+            }
+
+            var maxOrganizations = await _dbContext.SubscriptionPlans
+                .Where(plan => plan.Id == lockedSubscriptions[0].PlanId)
+                .Select(plan => plan.MaxOrganizations)
+                .SingleAsync(cancellationToken);
+            var existingOrganizationCount = await _dbContext.Organizations.CountAsync(
+                existing => existing.AccountSubscriptionId == accountSubscriptionId,
+                cancellationToken);
+            if (maxOrganizations > 0 && existingOrganizationCount >= maxOrganizations)
+            {
+                throw new InvalidOperationException(
+                    $"The {lockedSubscriptions[0].PlanName} plan allows up to {maxOrganizations} organizations. Upgrade your plan to create more.");
+            }
+
+            _dbContext.Organizations.Add(organization);
+            await _dbContext.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+            return organization;
+        }
+
         _dbContext.Organizations.Add(organization);
         await _dbContext.SaveChangesAsync(cancellationToken);
         return organization;

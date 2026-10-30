@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using CloudHubs.Application.Organizations;
 using CloudHubs.Domain.Organizations;
+using CloudHubs.Domain.Users;
 
 namespace CloudHubs.Infrastructure.Persistence;
 
@@ -92,6 +93,10 @@ public class OrganizationRoleRepository(CloudHubsDbContext dbContext) : IOrganiz
             .Where(membership => membership.UserId == userId)
             .Include(membership => membership.Organization)
                 .ThenInclude(organization => organization.Subscription)
+                    .ThenInclude(subscription => subscription!.Plan)
+            .Include(membership => membership.Organization)
+                .ThenInclude(organization => organization.AccountSubscription)
+                    .ThenInclude(subscription => subscription!.Plan)
             .OrderBy(membership => membership.Organization.Name)
             .ToListAsync(cancellationToken);
 
@@ -144,6 +149,56 @@ public class OrganizationRoleRepository(CloudHubsDbContext dbContext) : IOrganiz
         await dbContext.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         return membership;
+    }
+
+    public async Task<OrganizationMembership> AddNewMemberIfBelowLimitAsync(
+        User user,
+        Guid organizationId,
+        OrganizationMemberRole role,
+        int maximumMembers,
+        CancellationToken cancellationToken = default)
+    {
+        await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+        var lockedOrganization = await dbContext.Organizations
+            .FromSqlInterpolated($"SELECT * FROM \"Organizations\" WHERE \"Id\" = {organizationId} FOR UPDATE")
+            .ToListAsync(cancellationToken);
+        if (lockedOrganization.Count == 0)
+        {
+            throw new KeyNotFoundException("Organization was not found.");
+        }
+
+        if (await dbContext.Users.AnyAsync(
+                existing => existing.Email != null && existing.Email.ToLower() == user.Email!.ToLower(),
+                cancellationToken))
+        {
+            throw new InvalidOperationException("An account already uses this email. Add the existing account instead.");
+        }
+        if (await dbContext.Users.AnyAsync(
+                existing => existing.LoginId == user.LoginId,
+                cancellationToken))
+        {
+            throw new InvalidOperationException("The generated member ID is already in use. Please try again.");
+        }
+
+        var currentCount = await dbContext.OrganizationMemberships.CountAsync(
+            existing => existing.OrganizationId == organizationId,
+            cancellationToken);
+        if (maximumMembers > 0 && currentCount >= maximumMembers)
+        {
+            throw new InvalidOperationException($"The subscription plan allows up to {maximumMembers} members.");
+        }
+
+        user.OrganizationMemberships.Add(new OrganizationMembership
+        {
+            OrganizationId = organizationId,
+            UserId = user.Id,
+            User = user,
+            Role = role
+        });
+        dbContext.Users.Add(user);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return user.OrganizationMemberships.Single();
     }
 
     public async Task<bool> RemoveMembershipAsync(

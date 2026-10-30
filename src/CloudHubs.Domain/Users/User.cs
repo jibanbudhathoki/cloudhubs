@@ -1,4 +1,5 @@
 using CloudHubs.Domain.Organizations;
+using CloudHubs.Domain.Subscriptions;
 
 namespace CloudHubs.Domain.Users;
 
@@ -15,4 +16,5 @@ public class User
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
     public ICollection<OrganizationMembership> OrganizationMemberships { get; set; } = new List<OrganizationMembership>();
+    public AccountSubscription? AccountSubscription { get; set; }
 }

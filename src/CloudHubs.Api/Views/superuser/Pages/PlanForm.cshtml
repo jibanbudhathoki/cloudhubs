@@ -31,6 +31,7 @@
     <h2>Organization limits</h2>
     <p class="form-text">Set a limit to 0 for unlimited.</p>
     <div class="row g-3 mb-4">
+        <div class="col-md-3"><label class="form-label" asp-for="MaxOrganizations">Maximum organizations per account</label><input class="form-control" asp-for="MaxOrganizations" type="number" min="0" /><span class="text-danger" asp-validation-for="MaxOrganizations"></span></div>
         <div class="col-md-4"><label class="form-label" asp-for="MaxProjects">Maximum projects</label><input class="form-control" asp-for="MaxProjects" type="number" min="0" /><span class="text-danger" asp-validation-for="MaxProjects"></span></div>
         <div class="col-md-4"><label class="form-label" asp-for="MaxMembers">Maximum members</label><input class="form-control" asp-for="MaxMembers" type="number" min="0" /><span class="text-danger" asp-validation-for="MaxMembers"></span></div>
         <div class="col-md-4"><label class="form-label" asp-for="StorageLimitGb">Storage limit (GB)</label><input class="form-control" asp-for="StorageLimitGb" type="number" min="0" /><span class="text-danger" asp-validation-for="StorageLimitGb"></span></div>

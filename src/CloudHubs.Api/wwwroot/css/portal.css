@@ -99,6 +99,42 @@ a { color: inherit; text-decoration: none; }
 .login-panel h1 { margin: 0; color: var(--ink); font-size: 24px; font-weight: 700; }
 .login-panel > p:not(.eyebrow) { margin: 8px 0 20px; color: var(--muted); font-size: 12px; }
 .login-back { display: block; margin-top: 16px; color: var(--green); text-align: center; font-size: 11px; }
+.organization-sidebar .role-switch { align-items: flex-start; }
+.organization-switcher { display: grid; gap: 4px; margin-top: 18px; }
+.organization-switcher .role-label { margin: 0 8px 5px; }
+.organization-switch-button { width: 100%; padding: 8px 10px; color: #68736d; background: transparent; border: 0; border-radius: 5px; font-size: 11px; text-align: left; }
+.organization-switch-button:hover, .organization-switch-button:focus-visible { color: #17674f; background: #e9f3ee; }
+.organization-sidebar-account { display: flex; align-items: center; gap: 9px; padding: 10px 6px 0; border-top: 1px solid var(--line); }
+.organization-sidebar-account > span:last-child { display: flex; min-width: 0; flex-direction: column; gap: 3px; }
+.organization-sidebar-account strong { overflow: hidden; color: #3b4540; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.organization-sidebar-account small { overflow: hidden; color: var(--muted); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.organization-content { width: min(100%, 1320px); }
+.organization-add-workspace { margin-top: 16px; }
+.organization-view-all { margin-top: 4px; color: var(--green); font-weight: 600; }
+.organization-card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 12px; }
+.organization-card { display: flex; flex-direction: column; align-items: flex-start; gap: 14px; padding: 17px; }
+.organization-card .org-email { margin: 0; color: #79847d; font-size: 11px; }
+.organization-card form { margin-top: auto; }
+.organization-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.organization-plan-value { font-size: 20px !important; }
+.organization-section { margin-bottom: 16px; overflow: hidden; }
+.organization-section .surface-heading { border-bottom: 1px solid var(--line); }
+.organization-inline-form { padding: 12px 16px; border-bottom: 1px solid var(--line); }
+.organization-inline-form summary { display: inline-flex; cursor: pointer; list-style: none; }
+.organization-inline-form summary::-webkit-details-marker { display: none; }
+.organization-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
+.organization-form-grid .form-label { color: #4d5a52; font-size: 11px; font-weight: 600; }
+.organization-form-wide, .organization-form-actions { grid-column: 1 / -1; }
+.organization-form-actions { display: flex; justify-content: flex-end; }
+.organization-form-help { margin: 12px 0 0; color: #79847d; font-size: 11px; }
+.organization-role-form { display: flex; align-items: center; gap: 6px; }
+.organization-role-form .form-select { width: auto; min-width: 112px; }
+.organization-section .table { min-width: 640px; }
+.organization-section .table td { vertical-align: middle; }
+.organization-member-avatar { width: 29px; height: 29px; flex: 0 0 auto; font-size: 10px; }
+.organization-account { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 16px; }
+.organization-account h2 { margin: 0; color: #303935; font-size: 14px; }
+.organization-account p:last-child { margin: 5px 0 0; color: #858f89; font-size: 11px; }
 
 @media (max-width: 850px) {
   .admin-sidebar { position: static; inset: auto; width: 100%; min-height: 0; flex-flow: row wrap; align-items: center; justify-content: space-between; gap: 8px 16px; padding: 10px 20px; border-right: 0; border-bottom: 1px solid var(--line); }
@@ -121,4 +157,8 @@ a { color: inherit; text-decoration: none; }
   .stats-grid { gap: 8px; }
   .stat-card { min-height: 110px; padding: 12px; }
   .page-foot { flex-direction: column; }
+  .organization-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .organization-form-grid { grid-template-columns: 1fr; }
+  .organization-form-wide, .organization-form-actions { grid-column: auto; }
+  .organization-account { align-items: flex-start; flex-direction: column; }
 }

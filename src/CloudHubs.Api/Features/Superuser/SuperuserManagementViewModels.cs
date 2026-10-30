@@ -80,6 +80,9 @@ public class SubscriptionPlanFormViewModel
     public int TrialDays { get; set; }
 
     [Range(0, 1000000)]
+    public int MaxOrganizations { get; set; }
+
+    [Range(0, 1000000)]
     public int MaxProjects { get; set; }
 
     [Range(0, 1000000)]
@@ -109,6 +112,7 @@ public class SubscriptionPlanFormViewModel
         Price = Price,
         BillingInterval = BillingInterval,
         TrialDays = TrialDays,
+        MaxOrganizations = MaxOrganizations,
         MaxProjects = MaxProjects,
         MaxMembers = MaxMembers,
         StorageLimitGb = StorageLimitGb,
@@ -134,6 +138,7 @@ public class SubscriptionPlanFormViewModel
         Price = plan.Price,
         BillingInterval = plan.BillingInterval,
         TrialDays = plan.TrialDays,
+        MaxOrganizations = plan.MaxOrganizations,
         MaxProjects = plan.MaxProjects,
         MaxMembers = plan.MaxMembers,
         StorageLimitGb = plan.StorageLimitGb,

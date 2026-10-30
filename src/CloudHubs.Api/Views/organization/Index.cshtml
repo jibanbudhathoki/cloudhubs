@@ -1,79 +1,379 @@
 @model CloudHubs.Api.Features.Organizations.OrganizationPortalIndexViewModel
 @{
     Layout = null;
-    ViewData["Title"] = "Your organizations";
+    ViewData["Title"] = "Organization workspace";
+    var currentOrganization = Model.CurrentOrganization;
 }
 <!doctype html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Your organizations - CloudHubs</title>
+    <title>Organization workspace - CloudHubs</title>
     <link rel="stylesheet" href="~/lib/bootstrap/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/portal.css" />
 </head>
-<body class="login-page">
-    <main class="container py-5">
-        <header class="d-flex justify-content-between align-items-center mb-4">
-            <div>
-                <p class="eyebrow mb-1">ORGANIZATION PORTAL</p>
-                <h1 class="h2 mb-0">Welcome, @Model.UserName</h1>
-                @if (!string.IsNullOrWhiteSpace(Model.UserEmail))
+<body>
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+    <div class="admin-shell">
+        <aside class="admin-sidebar organization-sidebar">
+            <a class="brand" href="/organization">
+                <span class="brand-mark">C</span>
+                <span><strong>CloudHubs</strong><small>ORGANIZATION</small></span>
+            </a>
+            @if (currentOrganization is not null)
+            {
+                <p class="role-label">CURRENT ORGANIZATION</p>
+                <div class="role-switch">
+                    <span class="tenant-mark">@currentOrganization.Name[..Math.Min(currentOrganization.Name.Length, 2)].ToUpperInvariant()</span>
+                    <span><strong>@currentOrganization.Name</strong><small>@currentOrganization.Role</small></span>
+                </div>
+                <nav class="side-nav" aria-label="Workspace sections">
+                    <a class="side-link active" href="#overview">Overview</a>
+                    @if (Model.CanViewProjects)
+                    {
+                        <a class="side-link" href="#projects">Projects</a>
+                    }
+                    @if (Model.CanViewMembers)
+                    {
+                        <a class="side-link" href="/organization/members">Members</a>
+                    }
+                    <a class="side-link" href="#account">My account</a>
+                </nav>
+                @if (Model.Organizations.Count > 1)
                 {
-                    <p class="text-body-secondary mb-0">Signed in as @Model.UserEmail</p>
-                }
-            </div>
-            <form method="post" action="/organization/logout">
-                @Html.AntiForgeryToken()
-                <button type="submit" class="btn btn-outline-secondary">Sign out</button>
-            </form>
-        </header>
-
-        @if (Model.RequiresOrganizationSelection)
-        {
-            <h2 class="h4 mb-3">Choose an organization</h2>
-        }
-        else
-        {
-            <h2 class="h4 mb-3">Organization</h2>
-        }
-        @if (Model.Organizations.Count == 0)
-        {
-            <div class="alert alert-info" role="status">
-                You are signed in, but do not currently have access to an active organization.
-            </div>
-        }
-        else
-        {
-            <div class="row g-3">
-                @foreach (var organization in Model.Organizations)
-                {
-                    <div class="col-12 col-md-6 col-xl-4">
-                        <article class="card h-100 shadow-sm">
-                            <div class="card-body">
-                                <h3 class="h5 card-title">@organization.Name</h3>
-                                <p class="card-text text-body-secondary mb-2">
-                                    <span class="d-block small">Organization contact email</span>
-                                    @organization.Email
-                                </p>
-                                <span class="badge text-bg-light">@organization.Role</span>
-                                @if (Model.RequiresOrganizationSelection)
-                                {
-                                    <form method="post" action="/organization/select" class="mt-3">
-                                        @Html.AntiForgeryToken()
-                                        <input type="hidden" name="organizationId" value="@organization.Id" />
-                                        <button type="submit" class="btn btn-success">Open organization</button>
-                                    </form>
-                                }
-                            </div>
-                        </article>
+                    <div class="organization-switcher">
+                        <p class="role-label">SWITCH WORKSPACE</p>
+                        @foreach (var organization in Model.Organizations.Where(item => item.Id != currentOrganization.Id))
+                        {
+                            <form method="post" action="/organization/select">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="organizationId" value="@organization.Id" />
+                                <button class="organization-switch-button" type="submit">@organization.Name</button>
+                            </form>
+                        }
+                        <form method="post" action="/organization/workspaces">
+                            @Html.AntiForgeryToken()
+                            <button class="organization-switch-button organization-view-all" type="submit">View all workspaces</button>
+                        </form>
                     </div>
                 }
+                @if (Model.CanShowOrganizationAction)
+                {
+                    <a class="btn btn-success btn-sm organization-add-workspace" href="/organization/create">+ Add organization</a>
+                }
+            }
+            else
+            {
+                <nav class="side-nav" aria-label="Organization portal">
+                    <a class="side-link active" href="/organization">Your organizations</a>
+                </nav>
+            }
+            <div class="sidebar-spacer"></div>
+            <div class="organization-sidebar-account">
+                <span class="avatar">@((Model.UserName.Length > 0 ? Model.UserName[..1] : "U").ToUpperInvariant())</span>
+                <span><strong>@Model.UserName</strong><small>@Model.UserEmail</small></span>
             </div>
-        }
-        <p class="text-body-secondary mt-4 mb-0">
-            Organization project and member management is not yet available in the browser portal.
-        </p>
-    </main>
+        </aside>
+
+        <main class="admin-main" id="main-content" tabindex="-1">
+            <header class="topbar">
+                <div class="breadcrumbs"><span>Workspace</span><span>/</span><strong>@(currentOrganization?.Name ?? "Organizations")</strong></div>
+                <div class="heading-actions">
+                    @if (Model.HasAccountSubscription)
+                    {
+                        <span class="count organization-usage">
+                            Organizations @Model.AccountOrganizationCount
+                            @(Model.MaxOrganizations > 0 ? $"of {Model.MaxOrganizations}" : "· Unlimited")
+                        </span>
+                    }
+                    @if (Model.Organizations.Count > 1 && currentOrganization is not null)
+                    {
+                        <form method="post" action="/organization/workspaces">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-outline-secondary btn-sm">Switch workspace</button>
+                        </form>
+                    }
+                    @if (Model.CanShowOrganizationAction)
+                    {
+                        <a class="btn btn-success btn-sm" href="/organization/create">Add organization</a>
+                    }
+                    <form method="post" action="/organization/logout" class="sign-out-form">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-outline-secondary btn-sm">Sign out</button>
+                    </form>
+                </div>
+            </header>
+            <div class="page-content organization-content">
+                @if (TempData["Success"] is string success)
+                {
+                    <div class="alert alert-success" role="status">@success</div>
+                }
+                @if (TempData["Error"] is string error)
+                {
+                    <div class="alert alert-danger" role="alert">@error</div>
+                }
+
+                @if (currentOrganization is null)
+                {
+                    <section class="page-heading" id="overview">
+                        <div>
+                            <p class="eyebrow">YOUR WORKSPACE</p>
+                            <h1>Choose an organization</h1>
+                            <p>Choose a workspace to manage its projects and members, or add another organization.</p>
+                        </div>
+                    </section>
+                    @if (Model.Organizations.Count == 0)
+                    {
+                        <div class="surface empty-state">
+                            <strong>No active organizations</strong>
+                            <span>Your account does not currently have access to an active organization.</span>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="organization-card-grid">
+                            @foreach (var organization in Model.Organizations)
+                            {
+                                <article class="surface organization-card">
+                                    <div class="org-cell">
+                                        <span class="org-monogram">@organization.Name[..Math.Min(organization.Name.Length, 2)].ToUpperInvariant()</span>
+                                        <span><strong>@organization.Name</strong><small>@organization.Slug</small></span>
+                                    </div>
+                                    <p class="org-email">@organization.Email</p>
+                                    <span class="plan-label">@organization.Role</span>
+                                    <form method="post" action="/organization/select">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="organizationId" value="@organization.Id" />
+                                        <button class="btn btn-success btn-sm" type="submit">Switch to workspace</button>
+                                    </form>
+                                </article>
+                            }
+                        </div>
+                    }
+                }
+                else
+                {
+                    <section class="page-heading" id="overview">
+                        <div>
+                            <p class="eyebrow">ORGANIZATION WORKSPACE · @currentOrganization.Role.ToUpperInvariant()</p>
+                            <h1>@currentOrganization.Name</h1>
+                            <p>Signed in as @Model.UserName · @Model.UserEmail</p>
+                        </div>
+                        @if (Model.CanShowOrganizationAction)
+                        {
+                            <a class="btn btn-success" href="/organization/create">Add another organization</a>
+                        }
+                    </section>
+
+                    <section class="stats-grid organization-stats" aria-label="Organization summary">
+                        <article class="stat-card">
+                            <span class="stat-label">Projects</span>
+                            <strong>@(Model.CanViewProjects ? Model.Projects.Count : "—")</strong>
+                            <small>@(Model.CanViewProjects ? (currentOrganization.MaxProjects > 0 ? $"of {currentOrganization.MaxProjects} allowed" : "No plan limit") : "Not available for your role")</small>
+                        </article>
+                        <article class="stat-card">
+                            <span class="stat-label">Members</span>
+                            <strong>@(Model.CanViewMembers ? Model.Members.Count : "—")</strong>
+                            <small>@(Model.CanViewMembers ? (currentOrganization.MaxMembers > 0 ? $"of {currentOrganization.MaxMembers} allowed" : "No plan limit") : "Not available for your role")</small>
+                        </article>
+                        <article class="stat-card">
+                            <span class="stat-label">Subscription</span>
+                            <strong class="organization-plan-value">@currentOrganization.PlanName</strong>
+                            <small>@(currentOrganization.ExpiresAt is DateTime expiresAt ? $"Renews or expires {expiresAt.ToLocalTime():MMM d, yyyy}" : "Active")</small>
+                        </article>
+                    </section>
+
+                    @if (Model.CanViewProjects)
+                    {
+                        <section class="surface organization-section" id="projects">
+                            <div class="surface-heading">
+                                <div><h2>Projects</h2><p>Projects belonging to @currentOrganization.Name.</p></div>
+                                <span class="count">@Model.Projects.Count</span>
+                            </div>
+                            @if (Model.CanManageProjects)
+                            {
+                                <details class="organization-inline-form">
+                                    <summary class="btn btn-success btn-sm">Create project</summary>
+                                    <form method="post" action="/organization/projects/create" class="organization-form-grid">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="OrganizationId" value="@currentOrganization.Id" />
+                                        <div>
+                                            <label class="form-label" for="project-name">Project name</label>
+                                            <input class="form-control" id="project-name" name="Name" maxlength="200" required />
+                                        </div>
+                                        <div>
+                                            <label class="form-label" for="project-slug">Project slug</label>
+                                            <input class="form-control" id="project-slug" name="Slug" maxlength="120" pattern="[a-zA-Z0-9_-]+" required />
+                                        </div>
+                                        <div class="organization-form-wide">
+                                            <label class="form-label" for="project-description">Description</label>
+                                            <textarea class="form-control" id="project-description" name="Description" maxlength="2000" rows="2"></textarea>
+                                        </div>
+                                        <div class="organization-form-actions"><button class="btn btn-success btn-sm" type="submit">Save project</button></div>
+                                    </form>
+                                </details>
+                            }
+                            @if (Model.Projects.Count == 0)
+                            {
+                                <div class="empty-state"><strong>No projects yet</strong><span>Projects created here will be available to organization members.</span></div>
+                            }
+                            else
+                            {
+                                <div class="table-responsive">
+                                    <table class="table align-middle mb-0">
+                                        <thead>
+                                            <tr>
+                                                <th>Project</th>
+                                                <th>Description</th>
+                                                <th>Created</th>
+                                                @if (Model.CanManageProjects)
+                                                {
+                                                    <th><span class="visually-hidden">Actions</span></th>
+                                                }
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                        @foreach (var project in Model.Projects)
+                                        {
+                                            <tr>
+                                                <td><div class="org-cell"><span class="org-monogram">PR</span><span><strong>@project.Name</strong><small>@project.Slug</small></span></div></td>
+                                                <td>@(string.IsNullOrWhiteSpace(project.Description) ? "—" : project.Description)</td>
+                                                <td>@project.CreatedAt.ToLocalTime().ToString("MMM d, yyyy")</td>
+                                                @if (Model.CanManageProjects)
+                                                {
+                                                    <td>
+                                                        <form method="post" action="/organization/projects/delete" onsubmit="return confirm('Delete this project?');">
+                                                            @Html.AntiForgeryToken()
+                                                            <input type="hidden" name="organizationId" value="@currentOrganization.Id" />
+                                                            <input type="hidden" name="projectId" value="@project.Id" />
+                                                            <button class="btn btn-outline-danger btn-sm" type="submit">Delete</button>
+                                                        </form>
+                                                    </td>
+                                                }
+                                            </tr>
+                                        }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            }
+                        </section>
+                    }
+
+                    @if (Model.CanViewMembers)
+                    {
+                        <section class="surface organization-section" id="members">
+                            <div class="surface-heading">
+                                <div><h2>Members</h2><p>Manage who can access this organization.</p></div>
+                                <span class="count">@Model.Members.Count</span>
+                            </div>
+                            @if (Model.CanManageMembers)
+                            {
+                                <details class="organization-inline-form">
+                                    <summary class="btn btn-success btn-sm">Add member</summary>
+                                    <p class="organization-form-help">Create a member account with an 8-character password, or add an existing account without changing its password. New members receive a generated member ID.</p>
+                                    <form method="post" action="/organization/members/add" class="organization-form-grid">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="OrganizationId" value="@currentOrganization.Id" />
+                                        <div>
+                                            <label class="form-label" for="member-email">Member email</label>
+                                            <input class="form-control" id="member-email" name="Email" type="email" maxlength="200" required />
+                                        </div>
+                                        <div>
+                                            <label class="form-label" for="member-name">Full name</label>
+                                            <input class="form-control" id="member-name" name="Name" type="text" maxlength="200" required />
+                                        </div>
+                                        <div>
+                                            <label class="form-label" for="member-role">Role</label>
+                                            <select class="form-select" id="member-role" name="Role">
+                                                <option value="Developer">Developer</option>
+                                                <option value="Admin">Admin</option>
+                                                <option value="Viewer">Viewer</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="form-label" for="member-password">Password</label>
+                                            <input class="form-control" id="member-password" name="Password" type="password" minlength="8" maxlength="8" autocomplete="new-password" required />
+                                            <small class="form-text">Use exactly 8 characters. Existing accounts keep their current password.</small>
+                                        </div>
+                                        <div class="organization-form-actions"><button class="btn btn-success btn-sm" type="submit">Add member</button></div>
+                                    </form>
+                                </details>
+                            }
+                            <div class="table-responsive">
+                                <table class="table align-middle mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Member</th>
+                                            <th>Member ID</th>
+                                            <th>Role</th>
+                                            @if (Model.CanManageMembers)
+                                            {
+                                                <th><span class="visually-hidden">Actions</span></th>
+                                            }
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                    @foreach (var member in Model.Members)
+                                    {
+                                        <tr>
+                                            <td><div class="org-cell"><span class="avatar organization-member-avatar">@member.Name[..Math.Min(member.Name.Length, 1)].ToUpperInvariant()</span><span><strong>@member.Name</strong><small class="org-email">@member.Email</small></span></div></td>
+                                            <td><code>@(string.IsNullOrWhiteSpace(member.MemberId) ? "—" : member.MemberId)</code></td>
+                                            <td><span class="plan-label">@member.Role</span></td>
+                                            @if (Model.CanManageMembers)
+                                            {
+                                                <td>
+                                                    @if (!member.IsOwner)
+                                                    {
+                                                        <div class="table-actions">
+                                                            @if (!member.IsCustomRole)
+                                                            {
+                                                                <form method="post" action="/organization/members/update-role" class="organization-role-form">
+                                                                    @Html.AntiForgeryToken()
+                                                                    <input type="hidden" name="organizationId" value="@currentOrganization.Id" />
+                                                                    <input type="hidden" name="memberId" value="@member.UserId" />
+                                                                    <label class="visually-hidden" for="role-@member.UserId">Role for @member.Name</label>
+                                                                    <select class="form-select form-select-sm" id="role-@member.UserId" name="role">
+                                                                        <option value="Admin" selected="@(member.Role == "Admin")">Admin</option>
+                                                                        <option value="Developer" selected="@(member.Role == "Developer")">Developer</option>
+                                                                        <option value="Viewer" selected="@(member.Role == "Viewer")">Viewer</option>
+                                                                    </select>
+                                                                    <button class="btn btn-outline-secondary btn-sm" type="submit">Save</button>
+                                                                </form>
+                                                            }
+                                                            else
+                                                            {
+                                                                <span class="text-body-secondary small">Custom role</span>
+                                                            }
+                                                            <form method="post" action="/organization/members/remove" onsubmit="return confirm('Remove this member from the organization?');">
+                                                                @Html.AntiForgeryToken()
+                                                                <input type="hidden" name="organizationId" value="@currentOrganization.Id" />
+                                                                <input type="hidden" name="memberId" value="@member.UserId" />
+                                                                <button class="btn btn-outline-danger btn-sm" type="submit">Remove</button>
+                                                            </form>
+                                                        </div>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="text-body-secondary small">Organization owner</span>
+                                                    }
+                                                </td>
+                                            }
+                                        </tr>
+                                    }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+                    }
+
+                    <section class="surface organization-account" id="account">
+                        <div><p class="eyebrow">SIGNED-IN ACCOUNT</p><h2>@Model.UserName</h2><p>@Model.UserEmail</p></div>
+                        <span class="plan-label">Organization role: @currentOrganization.Role</span>
+                    </section>
+                }
+            </div>
+        </main>
+    </div>
 </body>
 </html>

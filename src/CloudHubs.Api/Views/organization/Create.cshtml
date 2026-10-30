@@ -1,0 +1,60 @@
+@model CloudHubs.Api.Features.Organizations.OrganizationPortalCreateViewModel
+@{
+    Layout = null;
+    ViewData["Title"] = "Create organization";
+}
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Create organization - CloudHubs</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/portal.css" />
+</head>
+<body class="login-page">
+    <main class="login-shell">
+        <section class="login-panel">
+            <p class="eyebrow">ACCOUNT SUBSCRIPTION · @Model.PlanName</p>
+            <h1>Create an organization</h1>
+            <p>Your account subscription covers this organization and any additional organizations you create.</p>
+            <div class="alert alert-info" role="status">
+                Organizations: @Model.OrganizationCount
+                @if (Model.MaxOrganizations > 0)
+                {
+                    <span>of @Model.MaxOrganizations included in your plan</span>
+                }
+                else
+                {
+                    <span>· unlimited on your plan</span>
+                }
+            </div>
+            @if (!Model.CanCreateOrganization)
+            {
+                <div class="alert alert-warning" role="status">
+                    You've reached the organization limit for your @Model.PlanName plan. Upgrade your subscription to add another organization.
+                </div>
+            }
+            <div asp-validation-summary="All" class="alert alert-danger" role="alert"></div>
+            @if (Model.CanCreateOrganization)
+            {
+                <form method="post" action="/organization/create" class="login-form">
+                    @Html.AntiForgeryToken()
+                    <label asp-for="Name">Organization name</label>
+                    <input asp-for="Name" class="form-control" autocomplete="organization" required />
+                    <span asp-validation-for="Name" class="text-danger"></span>
+                    <label asp-for="ContactEmail">Organization contact email</label>
+                    <input asp-for="ContactEmail" class="form-control" autocomplete="email" required />
+                    <span asp-validation-for="ContactEmail" class="text-danger"></span>
+                    <button class="btn btn-success w-100 mt-3" type="submit">Create organization</button>
+                    <a class="btn btn-outline-secondary w-100 mt-2" href="/organization">Cancel</a>
+                </form>
+            }
+            else
+            {
+                <a class="btn btn-outline-secondary w-100 mt-2" href="/organization">Back to workspace</a>
+            }
+        </section>
+    </main>
+</body>
+</html>

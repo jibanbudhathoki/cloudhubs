@@ -1,0 +1,39 @@
+@model CloudHubs.Api.Features.Organizations.SubscriptionPurchasePendingViewModel
+@{
+    Layout = null;
+    ViewData["Title"] = "Payment request submitted";
+}
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Payment request submitted - CloudHubs</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/portal.css" />
+</head>
+<body class="login-page">
+    <main class="login-shell">
+        <section class="login-panel">
+            <p class="eyebrow">MANUAL PAYMENT</p>
+            <h1>Request submitted</h1>
+            <p>A Superuser must verify your payment before the subscription can be activated for your account.</p>
+            <dl class="row">
+                <dt class="col-5">Request ID</dt>
+                <dd class="col-7"><code>@Model.PurchaseId</code></dd>
+                <dt class="col-5">Plan</dt>
+                <dd class="col-7">@Model.PlanName</dd>
+                <dt class="col-5">Amount</dt>
+                <dd class="col-7">@Model.Currency @Model.Price.ToString("0.00") / @Model.BillingInterval</dd>
+                <dt class="col-5">Account email</dt>
+                <dd class="col-7">@Model.Email</dd>
+            </dl>
+            @if (!string.IsNullOrWhiteSpace(Model.SupportEmail))
+            {
+                <p>Contact <a href="mailto:@Model.SupportEmail?subject=CloudHubs%20payment%20request%20@Model.PurchaseId">@Model.SupportEmail</a> to arrange payment. Include your request ID.</p>
+            }
+            <p class="text-body-secondary mb-0">After payment is approved, the Superuser will provide a secure one-time activation link.</p>
+        </section>
+    </main>
+</body>
+</html>

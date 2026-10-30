@@ -43,6 +43,7 @@
         <div class="surface-heading"><div><h2>Plan limits</h2><p>These are the limits configured on the organization’s assigned plan.</p></div></div>
         <div class="row g-3 p-3">
             <div class="col-md-4"><div class="border rounded p-3"><strong>Projects</strong><div>@(features?.MaxProjects == 0 ? "Unlimited" : features?.MaxProjects.ToString())</div></div></div>
+            <div class="col-md-4"><div class="border rounded p-3"><strong>Organizations per account</strong><div>@(features?.MaxOrganizations == 0 ? "Unlimited" : features?.MaxOrganizations.ToString())</div></div></div>
             <div class="col-md-4"><div class="border rounded p-3"><strong>Members</strong><div>@(features?.MaxMembers == 0 ? "Unlimited" : features?.MaxMembers.ToString())</div></div></div>
             <div class="col-md-4"><div class="border rounded p-3"><strong>Storage</strong><div>@(features?.StorageLimitGb == 0 ? "Unlimited" : $"{features?.StorageLimitGb} GB")</div></div></div>
         </div>

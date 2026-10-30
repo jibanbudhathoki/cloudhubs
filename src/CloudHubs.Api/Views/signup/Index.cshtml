@@ -1,0 +1,59 @@
+@model CloudHubs.Api.Features.Organizations.SubscriptionSignupViewModel
+@{
+    Layout = null;
+    ViewData["Title"] = "Choose a CloudHubs subscription";
+}
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Choose a subscription - CloudHubs</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/portal.css" />
+</head>
+<body class="login-page">
+    <main class="login-shell">
+        <a class="brand" href="/">
+            <span class="brand-mark">C</span>
+            <span><strong>CloudHubs</strong><small>SUBSCRIPTION</small></span>
+        </a>
+        <section class="login-panel">
+            <p class="eyebrow">START YOUR ACCOUNT</p>
+            <h1>Choose a subscription</h1>
+            <p>Request a plan for your account. One account subscription covers all organizations you create. Existing accounts can subscribe without changing their password or memberships.</p>
+            <div asp-validation-summary="All" class="alert alert-danger" role="alert"></div>
+            @if (Model.Plans.Count == 0)
+            {
+                <div class="alert alert-info" role="status">No paid plans are currently available. Contact CloudHubs support.</div>
+            }
+            else
+            {
+                <form method="post" action="/signup" class="login-form">
+                    @Html.AntiForgeryToken()
+                    <label asp-for="Name">Full name</label>
+                    <input asp-for="Name" class="form-control" autocomplete="name" required />
+                    <span asp-validation-for="Name" class="text-danger"></span>
+                    <label asp-for="Email">Email</label>
+                    <input asp-for="Email" class="form-control" autocomplete="email" required />
+                    <span asp-validation-for="Email" class="text-danger"></span>
+                    <label asp-for="PlanId">Subscription plan</label>
+                    <select asp-for="PlanId" class="form-select" required>
+                        <option value="">Choose a plan</option>
+                        @foreach (var plan in Model.Plans)
+                        {
+                            var interval = plan.BillingInterval == CloudHubs.Domain.Subscriptions.SubscriptionBillingInterval.Yearly ? "year" : "month";
+                            <option value="@plan.Id">@plan.Name — @plan.Currency @plan.Price.ToString("0.00") / @interval (@(plan.MaxOrganizations == 0 ? "unlimited organizations" : $"up to {plan.MaxOrganizations} organizations"))</option>
+                        }
+                    </select>
+                    <span asp-validation-for="PlanId" class="text-danger"></span>
+                    <div class="alert alert-secondary mt-3 mb-0">
+                        Development checkout uses manual payment verification. Your account is created only after a Superuser approves payment.
+                    </div>
+                    <button class="btn btn-success w-100 mt-3" type="submit">Continue with manual payment</button>
+                </form>
+            }
+        </section>
+    </main>
+</body>
+</html>

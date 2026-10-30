@@ -1,0 +1,26 @@
+@{
+    Layout = null;
+    ViewData["Title"] = "Subscription required";
+}
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Subscription required - CloudHubs</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/portal.css" />
+</head>
+<body class="login-page">
+    <main class="login-shell">
+        <section class="login-panel">
+            <p class="eyebrow">ORGANIZATION PORTAL</p>
+            <h1>Active subscription required</h1>
+            <p>This account does not have an active account-level subscription. A plan shown on an existing organization does not automatically allow this account to create additional organizations.</p>
+            <p>Request a plan for this account email. If you have already paid, ask the Superuser to verify that payment and approve the request; you can keep your existing password and memberships.</p>
+            <a class="btn btn-success w-100" href="/signup">View subscription plans</a>
+            <a class="btn btn-outline-secondary w-100 mt-2" href="/organization">Back to portal</a>
+        </section>
+    </main>
+</body>
+</html>

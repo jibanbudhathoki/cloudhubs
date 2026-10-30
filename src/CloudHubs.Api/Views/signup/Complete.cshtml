@@ -1,0 +1,50 @@
+@model CloudHubs.Api.Features.Organizations.SubscriptionCompletionViewModel
+@{
+    Layout = null;
+    ViewData["Title"] = "Complete account signup";
+}
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Complete signup - CloudHubs</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/portal.css" />
+</head>
+<body class="login-page">
+    <main class="login-shell">
+        <section class="login-panel">
+            <p class="eyebrow">PAYMENT APPROVED</p>
+            <h1>Complete your account</h1>
+            @if (Model.ExistingAccount)
+            {
+                <p>Your subscription is approved. It will be added to your existing account without changing your password or organization memberships.</p>
+            }
+            else
+            {
+                <p>Your subscription is approved. Set a password to finish account setup.</p>
+            }
+            <div asp-validation-summary="All" class="alert alert-danger" role="alert"></div>
+            <form method="post" action="/signup/complete" class="login-form">
+                @Html.AntiForgeryToken()
+                <input asp-for="PurchaseId" type="hidden" />
+                <input asp-for="Token" type="hidden" />
+                <input asp-for="Name" type="hidden" />
+                <input asp-for="Email" type="hidden" />
+                <p><strong>@Model.Name</strong><br /><span class="text-body-secondary">@Model.Email</span></p>
+                @if (!Model.ExistingAccount)
+                {
+                    <label asp-for="Password">Password</label>
+                    <input asp-for="Password" class="form-control" autocomplete="new-password" required />
+                    <span asp-validation-for="Password" class="text-danger"></span>
+                    <label asp-for="ConfirmPassword">Confirm password</label>
+                    <input asp-for="ConfirmPassword" class="form-control" autocomplete="new-password" required />
+                    <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
+                }
+                <button class="btn btn-success w-100 mt-3" type="submit">@(Model.ExistingAccount ? "Activate subscription" : "Create account")</button>
+            </form>
+        </section>
+    </main>
+</body>
+</html>

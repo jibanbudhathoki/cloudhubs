@@ -47,7 +47,7 @@
                                     <small class="d-block org-email">@plan.TrialDays trial days</small>
                                 }
                             </td>
-                            <td><small>Projects: @(plan.MaxProjects == 0 ? "Unlimited" : plan.MaxProjects)</small><br /><small>Members: @(plan.MaxMembers == 0 ? "Unlimited" : plan.MaxMembers)</small><br /><small>Storage: @(plan.StorageLimitGb == 0 ? "Unlimited" : $"{plan.StorageLimitGb} GB")</small></td>
+                            <td><small>Organizations: @(plan.MaxOrganizations == 0 ? "Unlimited" : plan.MaxOrganizations)</small><br /><small>Projects: @(plan.MaxProjects == 0 ? "Unlimited" : plan.MaxProjects)</small><br /><small>Members: @(plan.MaxMembers == 0 ? "Unlimited" : plan.MaxMembers)</small><br /><small>Storage: @(plan.StorageLimitGb == 0 ? "Unlimited" : $"{plan.StorageLimitGb} GB")</small></td>
                             <td>
                                 @{
                                     var features = new List<string>();

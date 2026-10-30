@@ -143,6 +143,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi();
 builder.Services.AddHealthChecks();
 builder.Services.AddScoped<OrganizationService>();
+builder.Services.AddScoped<AccountSubscriptionService>();
 builder.Services.AddScoped<OrganizationTenantService>();
 builder.Services.AddScoped<TenantTokenIssuer>();
 builder.Services.AddScoped<PlatformSettingsService>();
@@ -157,6 +158,7 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 
 builder.Services.AddDbContext<CloudHubsDbContext>(options => options.UseNpgsql(connectionString));
 builder.Services.AddScoped<IOrganizationRepository, OrganizationRepository>();
+builder.Services.AddScoped<IAccountSubscriptionRepository, AccountSubscriptionRepository>();
 builder.Services.AddScoped<ISubscriptionPlanRepository, SubscriptionPlanRepository>();
 builder.Services.AddScoped<SubscriptionPlanService>();
 builder.Services.AddScoped<IOrganizationRoleRepository, OrganizationRoleRepository>();

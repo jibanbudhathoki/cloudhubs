@@ -5,4 +5,7 @@ public sealed record OrganizationPortalProjectViewModel(
     string Name,
     string Slug,
     string Description,
-    DateTime CreatedAt);
+    DateTime CreatedAt,
+    string TemplateId = "default",
+    string TemplateName = "Default Starter",
+    string RootPath = "");

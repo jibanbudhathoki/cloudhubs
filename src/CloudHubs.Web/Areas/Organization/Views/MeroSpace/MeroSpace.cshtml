@@ -1,0 +1,525 @@
+@model MeroSpaceViewModel
+@{
+    Layout = null;
+    ViewData["Title"] = $"MeroSpace · {Model.ProjectName}";
+}
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>MeroSpace · @Model.ProjectName (@Model.TemplateName)</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/merospace.css" asp-append-version="true" />
+</head>
+<body>
+    <div class="merospace-shell">
+        <!-- Title Bar -->
+        <header class="merospace-titlebar">
+            <div class="d-flex align-items-center gap-3">
+                <a class="titlebar-brand" href="/organization">
+                    <span class="titlebar-brand-mark">M</span>
+                    <span>MeroSpace</span>
+                </a>
+
+                <!-- Top Menus -->
+                <nav class="titlebar-menu" aria-label="Editor Menus">
+                    <!-- File Menu -->
+                    <div class="menu-dropdown" id="menu-file">
+                        <span class="titlebar-menu-item" onclick="toggleMenu('menu-file')">File</span>
+                        <div class="dropdown-menu-box">
+                            <button class="dropdown-item-btn" onclick="createNewFilePrompt(); closeMenus();">
+                                <span>📄 New File...</span><span class="dropdown-shortcut">Ctrl+N</span>
+                            </button>
+                            <button class="dropdown-item-btn" onclick="createNewFolderPrompt(); closeMenus();">
+                                <span>📁 New Folder...</span>
+                            </button>
+                            <div class="dropdown-divider"></div>
+                            <button class="dropdown-item-btn" onclick="saveCurrentFile(); closeMenus();">
+                                <span>💾 Save</span><span class="dropdown-shortcut">Ctrl+S</span>
+                            </button>
+                            <button class="dropdown-item-btn" onclick="closeActiveTab(); closeMenus();">
+                                <span>❌ Close Tab</span><span class="dropdown-shortcut">Ctrl+W</span>
+                            </button>
+                            <button class="dropdown-item-btn" onclick="closeAllTabs(); closeMenus();">
+                                <span>✕ Close All Tabs</span><span class="dropdown-shortcut">Ctrl+Shift+W</span>
+                            </button>
+                            <div class="dropdown-divider"></div>
+                            <a class="dropdown-item-btn text-decoration-none" href="/organization/merospace/@Model.ProjectId/download" download="@(Model.ProjectSlug)-source.zip">
+                                <span>📦 Download Project (ZIP)</span>
+                            </a>
+                            <div class="dropdown-divider"></div>
+                            <button class="dropdown-item-btn" onclick="loadTree(); closeMenus();">
+                                <span>↻ Refresh Workspace</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Terminal Menu -->
+                    <div class="menu-dropdown" id="menu-terminal">
+                        <span class="titlebar-menu-item" onclick="toggleMenu('menu-terminal')">Terminal</span>
+                        <div class="dropdown-menu-box">
+                            <button class="dropdown-item-btn" onclick="toggleTerminal(); closeMenus();">
+                                <span>Toggle Terminal</span><span class="dropdown-shortcut">Ctrl+`</span>
+                            </button>
+                            <button class="dropdown-item-btn" onclick="clearTerminal(); closeMenus();">
+                                <span>Clear Terminal</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Run Menu -->
+                    <div class="menu-dropdown" id="menu-run">
+                        <span class="titlebar-menu-item" onclick="toggleMenu('menu-run')">Run</span>
+                        <div class="dropdown-menu-box">
+                            <button class="dropdown-item-btn" onclick="startExecution(); closeMenus();">
+                                <span>▶ Run Project</span><span class="dropdown-shortcut">F5</span>
+                            </button>
+                            <button class="dropdown-item-btn" onclick="stopExecution(); closeMenus();">
+                                <span>⏹ Stop Project</span>
+                            </button>
+                            <button class="dropdown-item-btn" onclick="restartExecution(); closeMenus();">
+                                <span>🔄 Restart Project</span>
+                            </button>
+                            <div class="dropdown-divider"></div>
+                            <button class="dropdown-item-btn" onclick="openLivePreview(); closeMenus();">
+                                <span>🌐 Open Live Preview</span>
+                            </button>
+                        </div>
+                    </div>
+                </nav>
+            </div>
+
+            <!-- Quick Open Search -->
+            <div class="titlebar-center">
+                <div class="titlebar-search-wrap">
+                    <input class="titlebar-search" id="quick-open-input" placeholder="@Model.ProjectName &bull; Quick Open files (Ctrl+P)..." autocomplete="off" />
+                    <span class="titlebar-search-icon">🔍</span>
+                    <div class="quick-open-results" id="quick-open-results"></div>
+                </div>
+            </div>
+
+            <!-- Top Actions -->
+            <div class="titlebar-actions">
+                <span class="template-pill">@Model.TemplateName</span>
+
+                <!-- Real-Time Run Controls -->
+                <button class="titlebar-btn btn-run" id="btn-run" onclick="startExecution()" title="Run project (F5)">
+                    &#9654; Run
+                </button>
+                <button class="titlebar-btn btn-stop" id="btn-stop" onclick="stopExecution()" style="display: none;" title="Stop project">
+                    &#9632; Stop
+                </button>
+                <button class="titlebar-btn btn-restart" id="btn-restart" onclick="restartExecution()" style="display: none;" title="Restart project">
+                    &#8635; Restart
+                </button>
+                <a class="titlebar-btn btn-preview" id="btn-preview" href="http://localhost:3000/health" target="_blank" style="display: none;" title="Open live server in new browser tab">
+                    &#127760; Open localhost:3000
+                </a>
+                <a class="titlebar-btn" href="/organization/merospace/@Model.ProjectId/download" download="@(Model.ProjectSlug)-source.zip" title="Download all project files as ZIP">
+                    📦 Download Code
+                </a>
+
+                <button class="titlebar-btn btn-save-top" onclick="saveCurrentFile()" id="btn-save" title="Save file (Ctrl+S)">
+                    &#128190; Save
+                </button>
+                <a class="titlebar-btn" href="/organization/projects" title="Back to projects">
+                    &larr; Exit
+                </a>
+            </div>
+        </header>
+
+        <!-- Main Body -->
+        <div class="merospace-body">
+            <!-- Activity Bar -->
+            <aside class="activity-bar">
+                <button class="activity-btn active" data-view="explorer" title="Explorer (Ctrl+Shift+E)">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/></svg>
+                </button>
+                <button class="activity-btn" data-view="search" title="Search (Ctrl+Shift+F)">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                </button>
+                <button class="activity-btn" data-view="comments" title="Code Comments & Review Notes">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    <span class="activity-badge" id="comments-badge" style="display: none;">0</span>
+                </button>
+                <button class="activity-btn" data-view="git" title="Source Control (Ctrl+Shift+G)">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M6 9v12"/><path d="M18 9a9 9 0 0 0-9 9"/></svg>
+                </button>
+                <button class="activity-btn" data-view="debug" title="Run & Debug (Ctrl+Shift+D)">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                </button>
+                <button class="activity-btn" data-view="apitester" title="API Tester & Client (Test Endpoints)">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                </button>
+                <button class="activity-btn" data-view="extensions" title="Extensions & Template Plugins (Ctrl+Shift+X)">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                </button>
+                <div class="activity-spacer"></div>
+                <button class="activity-btn" onclick="toggleTheme()" title="Toggle Color Theme">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+                </button>
+            </aside>
+
+            <!-- Primary Sidebar -->
+            <div class="merospace-sidebar">
+                <!-- Explorer View -->
+                <div class="sidebar-view active" id="view-explorer">
+                    <div class="sidebar-header">
+                        <span>EXPLORER: @Model.ProjectSlug</span>
+                        <div class="sidebar-actions">
+                            <button class="sidebar-action-btn" onclick="createNewFilePrompt()" title="New File (inside root)">&#43; File</button>
+                            <button class="sidebar-action-btn" onclick="createNewFolderPrompt()" title="New Directory (inside root)">&#43; Dir</button>
+                            <button class="sidebar-action-btn" onclick="collapseAllFolders()" title="Collapse All Folders in Explorer">&#8863;</button>
+                            <a class="sidebar-action-btn text-decoration-none" href="/organization/merospace/@Model.ProjectId/download" download="@(Model.ProjectSlug)-source.zip" title="Download all project files as ZIP">&#128230;</a>
+                            <button class="sidebar-action-btn" onclick="loadTree()" title="Refresh Explorer">&#8635;</button>
+                        </div>
+                    </div>
+                    <div class="explorer-tree-wrap" id="file-tree-container">
+                        <div class="p-3 text-muted">Loading workspace files...</div>
+                    </div>
+                </div>
+
+                <!-- Search View -->
+                <div class="sidebar-view" id="view-search">
+                    <div class="sidebar-header"><span>SEARCH IN WORKSPACE</span></div>
+                    <div class="sidebar-pad">
+                        <input class="sidebar-input" id="search-input" placeholder="Type text to search in files..." />
+                        <div id="search-results-container"></div>
+                    </div>
+                </div>
+
+                <!-- Code Comments Sidebar View -->
+                <div class="sidebar-view" id="view-comments">
+                    <div class="sidebar-header">
+                        <span>COMMENTS &amp; REVIEWS</span>
+                        <button class="sidebar-action-btn" onclick="openCommentModalForCurrentFile()" title="Add Comment on active file">&#43;</button>
+                    </div>
+                    <div class="comments-filter-row">
+                        <button class="filter-btn active" data-filter="all" onclick="filterComments('all')">All</button>
+                        <button class="filter-btn" data-filter="open" onclick="filterComments('open')">Open</button>
+                        <button class="filter-btn" data-filter="resolved" onclick="filterComments('resolved')">Resolved</button>
+                    </div>
+                    <div class="sidebar-pad" id="comments-list-container">
+                        <div class="text-muted small p-2">Loading comments...</div>
+                    </div>
+                </div>
+
+                <!-- Git / Source Control View -->
+                <div class="sidebar-view" id="view-git">
+                    <div class="sidebar-header"><span>SOURCE CONTROL</span></div>
+                    <div class="sidebar-pad">
+                        <small class="text-muted d-block mb-2">Branch: <strong>main</strong></small>
+                        <input class="sidebar-input" id="git-commit-msg" placeholder="Message (Press Ctrl+Enter to commit)..." />
+                        <button class="btn btn-sm btn-primary w-100" onclick="simulateGitCommit()">Commit</button>
+                        <div class="mt-3">
+                            <small class="text-muted text-uppercase fw-bold">Changes</small>
+                            <div class="p-2 small text-success">&#10003; Working directory clean</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Run & Debug View -->
+                <div class="sidebar-view" id="view-debug">
+                    <div class="sidebar-header"><span>RUN &amp; DEBUG</span></div>
+                    <div class="sidebar-pad">
+                        <p class="small text-muted mb-2">Configuration: <strong>@Model.TemplateName</strong></p>
+                        <div class="d-flex gap-2 mb-3">
+                            <button class="btn btn-sm btn-success flex-1" onclick="startExecution()">&#9654; Start</button>
+                            <button class="btn btn-sm btn-danger flex-1" onclick="stopExecution()">&#9632; Stop</button>
+                        </div>
+                        <div class="p-2 bg-dark rounded small text-muted">
+                            <div>Port: <span class="text-info" id="debug-port-display">@(Model.TemplateId.Contains("node") ? "3000" : "8080")</span></div>
+                            <div>Status: <span class="text-white" id="debug-status-display">Stopped</span></div>
+                            <div>Uptime: <span class="text-warning" id="debug-uptime-display">00:00</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- API Tester View -->
+                <div class="sidebar-view" id="view-apitester">
+                    <div class="sidebar-header">
+                        <span class="d-flex align-items-center gap-1">
+                            <span style="color: #27c93f;">⚡</span> API TESTER
+                        </span>
+                        <div class="d-flex gap-1">
+                            <button class="sidebar-action-btn" onclick="resetApiTester()" title="Reset Request to Default">&#8635;</button>
+                        </div>
+                    </div>
+                    <div class="sidebar-pad api-tester-shell">
+                        <!-- Method & URL Bar -->
+                        <div class="d-flex gap-1 align-items-center">
+                            <select class="api-method-select get" id="api-method" onchange="onApiMethodChange()">
+                                <option value="GET">GET</option>
+                                <option value="POST">POST</option>
+                                <option value="PUT">PUT</option>
+                                <option value="PATCH">PATCH</option>
+                                <option value="DELETE">DELETE</option>
+                            </select>
+                            <input class="api-url-bar" id="api-url" value="http://localhost:3000/health" placeholder="http://localhost:3000/..." oninput="onApiUrlInput()" />
+                        </div>
+
+                        <!-- Send Button -->
+                        <button class="btn-api-send" id="btn-send-api" onclick="sendApiRequest()" title="Send Request (Ctrl+Enter)">
+                            <span id="btn-send-icon">⚡</span>
+                            <span id="btn-send-label">Send Request</span>
+                            <small style="opacity: 0.6; font-size: 9px; font-weight: normal;">(Ctrl+↵)</small>
+                        </button>
+
+                        <!-- Quick Endpoints Preset Pills -->
+                        <div>
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <small class="text-muted text-uppercase fw-bold" style="font-size: 9.5px; letter-spacing: 0.5px;">Quick Endpoints</small>
+                                <span class="text-muted" style="font-size: 9.5px;" id="api-detected-port">Target: :3000</span>
+                            </div>
+                            <div class="d-flex flex-wrap gap-1">
+                                <button type="button" class="preset-pill" onclick="setApiPreset('GET', '/health')">GET /health</button>
+                                <button type="button" class="preset-pill" onclick="setApiPreset('GET', '/api/users')">GET /api/users</button>
+                                <button type="button" class="preset-pill" onclick="setApiPreset('GET', '/')">GET /</button>
+                                <button type="button" class="preset-pill" onclick="setApiPreset('POST', '/api/users', '{\n  &quot;name&quot;: &quot;Alice&quot;,\n  &quot;email&quot;: &quot;alice@example.com&quot;\n}')">POST /users</button>
+                            </div>
+                        </div>
+
+                        <!-- Request Configuration Sub-Tabs -->
+                        <div>
+                            <div class="api-nav-tabs">
+                                <button type="button" class="api-nav-tab active" id="tab-btn-params" onclick="switchApiTab('params')">Params <span class="api-tab-badge" id="badge-params">0</span></button>
+                                <button type="button" class="api-nav-tab" id="tab-btn-headers" onclick="switchApiTab('headers')">Headers <span class="api-tab-badge" id="badge-headers">0</span></button>
+                                <button type="button" class="api-nav-tab" id="tab-btn-auth" onclick="switchApiTab('auth')">Auth <span class="api-tab-badge" id="badge-auth">none</span></button>
+                                <button type="button" class="api-nav-tab" id="tab-btn-body" onclick="switchApiTab('body')">Body <span class="api-tab-badge" id="badge-body">none</span></button>
+                                <button type="button" class="api-nav-tab" id="tab-btn-history" onclick="switchApiTab('history')">History <span class="api-tab-badge" id="badge-history">0</span></button>
+                            </div>
+
+                            <div class="api-tab-content">
+                                <!-- Params Tab -->
+                                <div id="api-panel-params">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <small class="text-muted fw-bold" style="font-size: 9.5px;">QUERY PARAMETERS</small>
+                                        <button type="button" class="btn btn-sm btn-link p-0 text-muted text-decoration-none" style="font-size: 10px;" onclick="clearAllParams()">Clear All</button>
+                                    </div>
+                                    <div class="api-kv-table" id="api-params-table">
+                                        <!-- Dynamic param rows -->
+                                    </div>
+                                    <button type="button" class="api-add-kv-btn" onclick="addParamRow()">+ Add Parameter</button>
+                                </div>
+
+                                <!-- Headers Tab -->
+                                <div id="api-panel-headers" style="display: none;">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <small class="text-muted fw-bold" style="font-size: 9.5px;">HTTP HEADERS</small>
+                                        <div class="d-flex gap-1">
+                                            <button type="button" class="preset-pill py-0 px-1" style="font-size: 9px;" onclick="addQuickHeader('Content-Type', 'application/json')">+ JSON</button>
+                                            <button type="button" class="preset-pill py-0 px-1" style="font-size: 9px;" onclick="addQuickHeader('Accept', 'application/json')">+ Accept</button>
+                                        </div>
+                                    </div>
+                                    <div class="api-kv-table" id="api-headers-table">
+                                        <!-- Dynamic header rows -->
+                                    </div>
+                                    <button type="button" class="api-add-kv-btn" onclick="addHeaderRow()">+ Add Header</button>
+                                </div>
+
+                                <!-- Auth Tab -->
+                                <div id="api-panel-auth" style="display: none;">
+                                    <div class="api-auth-box">
+                                        <label class="text-muted fw-bold mb-0" style="font-size: 9.5px;">AUTHENTICATION TYPE</label>
+                                        <select class="api-auth-select" id="api-auth-type" onchange="onAuthTypeChange()">
+                                            <option value="none">No Auth</option>
+                                            <option value="bearer">Bearer Token</option>
+                                            <option value="basic">Basic Auth</option>
+                                            <option value="apikey">API Key</option>
+                                        </select>
+
+                                        <div id="auth-bearer-wrap" style="display: none;">
+                                            <label class="text-muted small mb-1" style="font-size: 10px;">Token</label>
+                                            <input class="api-kv-input w-100" id="api-auth-token" placeholder="eyJhbGciOiJIUzI1NiIs..." />
+                                        </div>
+
+                                        <div id="auth-basic-wrap" style="display: none;">
+                                            <label class="text-muted small mb-1" style="font-size: 10px;">Username</label>
+                                            <input class="api-kv-input w-100 mb-1" id="api-auth-user" placeholder="admin" />
+                                            <label class="text-muted small mb-1" style="font-size: 10px;">Password</label>
+                                            <input type="password" class="api-kv-input w-100" id="api-auth-pass" placeholder="••••••••" />
+                                        </div>
+
+                                        <div id="auth-apikey-wrap" style="display: none;">
+                                            <label class="text-muted small mb-1" style="font-size: 10px;">Key</label>
+                                            <input class="api-kv-input w-100 mb-1" id="api-auth-apikey-key" placeholder="X-API-Key" value="X-API-Key" />
+                                            <label class="text-muted small mb-1" style="font-size: 10px;">Value</label>
+                                            <input class="api-kv-input w-100" id="api-auth-apikey-val" placeholder="your-api-key-here" />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Body Tab -->
+                                <div id="api-panel-body" style="display: none;">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <div class="d-flex gap-2 align-items-center">
+                                            <label class="d-flex align-items-center gap-1 text-muted" style="font-size: 10px; cursor: pointer;">
+                                                <input type="radio" name="api-body-type" value="json" checked onchange="onBodyTypeChange('json')" /> JSON
+                                            </label>
+                                            <label class="d-flex align-items-center gap-1 text-muted" style="font-size: 10px; cursor: pointer;">
+                                                <input type="radio" name="api-body-type" value="raw" onchange="onBodyTypeChange('raw')" /> Raw
+                                            </label>
+                                            <label class="d-flex align-items-center gap-1 text-muted" style="font-size: 10px; cursor: pointer;">
+                                                <input type="radio" name="api-body-type" value="none" onchange="onBodyTypeChange('none')" /> None
+                                            </label>
+                                        </div>
+                                        <div class="d-flex gap-1" id="body-actions-deck">
+                                            <button type="button" class="btn btn-sm btn-link p-0 text-info text-decoration-none" style="font-size: 10px;" onclick="formatApiJsonBody()">Beautify</button>
+                                            <span class="text-muted" style="font-size: 10px;">|</span>
+                                            <button type="button" class="btn btn-sm btn-link p-0 text-secondary text-decoration-none" style="font-size: 10px;" onclick="minifyApiJsonBody()">Minify</button>
+                                        </div>
+                                    </div>
+                                    <textarea class="sidebar-input mb-0" id="api-body" rows="5" style="font-family: ui-monospace, monospace; font-size: 11px; white-space: pre;" placeholder='{\n  "key": "value"\n}' oninput="updateBodyBadge()"></textarea>
+                                </div>
+
+                                <!-- History Tab -->
+                                <div id="api-panel-history" style="display: none;">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <small class="text-muted fw-bold" style="font-size: 9.5px;">RECENT REQUESTS</small>
+                                        <button type="button" class="btn btn-sm btn-link p-0 text-danger text-decoration-none" style="font-size: 10px;" onclick="clearApiHistory()">Clear</button>
+                                    </div>
+                                    <div class="api-history-list" id="api-history-container">
+                                        <div class="text-muted text-center py-3" style="font-size: 11px;">No past requests yet.</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Response Deck -->
+                        <div class="api-response-deck" id="api-response-container" style="display: none;">
+                            <div class="api-response-header">
+                                <div class="api-stat-group">
+                                    <span class="api-status-badge s2xx" id="api-status-badge">200 OK</span>
+                                    <span class="api-stat-pill" id="api-time-badge">0 ms</span>
+                                    <span class="api-stat-pill" id="api-size-badge">0 B</span>
+                                </div>
+                                <div class="api-response-actions">
+                                    <button type="button" class="api-tool-btn" onclick="copyApiResponse()" title="Copy Response JSON">📋 Copy</button>
+                                    <button type="button" class="api-tool-btn" onclick="downloadApiResponse()" title="Download Response as File">💾 Save</button>
+                                    <button type="button" class="api-tool-btn" onclick="clearApiResponse()" title="Clear Response">✕</button>
+                                </div>
+                            </div>
+                            <!-- Response Sub Tabs -->
+                            <div class="d-flex px-2 pt-1 gap-2" style="background: #181818; border-bottom: 1px solid #282828;">
+                                <button type="button" class="btn btn-sm btn-link p-0 text-decoration-none text-white fw-bold" style="font-size: 10px;" id="resp-tab-body-btn" onclick="switchResponseView('body')">Body</button>
+                                <button type="button" class="btn btn-sm btn-link p-0 text-decoration-none text-muted" style="font-size: 10px;" id="resp-tab-headers-btn" onclick="switchResponseView('headers')">Headers</button>
+                            </div>
+                            <pre class="api-response-viewer" id="api-response-body"></pre>
+                            <div id="api-response-headers-wrap" style="display: none; max-height: 200px; overflow-y: auto; padding: 6px; font-size: 10px; font-family: monospace; background: #0d0d0d; color: #ccc;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Extensions View -->
+                <div class="sidebar-view" id="view-extensions">
+                    <div class="sidebar-header"><span>EXTENSIONS &amp; PLUGINS</span></div>
+                    <div class="sidebar-pad">
+                        <div class="p-2 mb-2 bg-dark rounded">
+                            <strong class="d-block text-white">@Model.TemplateName Architecture Plugin</strong>
+                            <small class="text-muted">Scaffolded boilerplate, live runner, and template support.</small>
+                        </div>
+                        <div class="p-2 mb-2 bg-dark rounded">
+                            <strong class="d-block text-white">Monaco Code Intelligence</strong>
+                            <small class="text-muted">Syntax highlighting, intellisense, code completion.</small>
+                        </div>
+                        <div class="p-2 bg-dark rounded">
+                            <strong class="d-block text-white">Code Review &amp; Inline Comments</strong>
+                            <small class="text-muted">Full team commenting, line review, and reply threads.</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Editor Group -->
+            <main class="editor-container">
+                <!-- Tab Strip -->
+                <div class="editor-tabs-bar-wrap">
+                    <div class="editor-tabs" id="editor-tabs-bar"></div>
+                    <div class="editor-tabs-actions">
+                        <button class="tabs-action-btn" onclick="closeAllTabs()" title="Close All Tabs (Ctrl+Shift+W)">✕ Close All</button>
+                    </div>
+                </div>
+
+                <!-- Breadcrumbs & Quick Comment Button -->
+                <div class="editor-breadcrumbs">
+                    <div class="breadcrumb-crumbs" id="editor-breadcrumbs">
+                        <span id="breadcrumb-path">@Model.ProjectSlug</span>
+                    </div>
+                    <button class="editor-quick-comment-btn" onclick="openCommentModalForCurrentFile()" title="Add comment on active line">
+                        💬 Add Comment
+                    </button>
+                </div>
+
+                <!-- Editor Canvas -->
+                <div class="editor-canvas">
+                    <div id="monaco-editor-container"></div>
+                </div>
+
+                <!-- Bottom Panel (Terminal / Output) -->
+                <div class="merospace-panel" id="bottom-panel">
+                    <div class="panel-header">
+                        <div class="panel-tabs">
+                            <span class="panel-tab active" data-panel="terminal" onclick="switchPanelTab('terminal')">TERMINAL</span>
+                            <span class="panel-tab" data-panel="output" onclick="switchPanelTab('output')">OUTPUT</span>
+                            <span class="panel-tab" data-panel="problems" onclick="switchPanelTab('problems')">PROBLEMS (0)</span>
+                            <span class="panel-tab" data-panel="apitester" onclick="switchPanelTab('apitester')">⚡ API TESTER</span>
+                        </div>
+                        <div class="panel-actions">
+                            <button class="sidebar-action-btn" onclick="clearTerminal()" title="Clear Terminal">&#128465;</button>
+                            <button class="sidebar-action-btn" onclick="toggleTerminal()" title="Toggle Panel">&#10005;</button>
+                        </div>
+                    </div>
+                    <div class="panel-body" id="panel-body">
+                        <pre class="terminal-output" id="terminal-output-text">MeroSpace Cloud Terminal v2.0 [Ready]
+Connected to project: @Model.ProjectSlug (@Model.TemplateName)
+Type 'help' for terminal commands or click '▶ Run' to start real-time execution.
+</pre>
+                        <div class="terminal-input-row">
+                            <span class="terminal-prompt">$</span>
+                            <input class="terminal-input" id="terminal-input" placeholder="Type command (e.g. run, status, stop, ls, cat README.md, help)..." />
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <!-- Status Bar -->
+        <footer class="merospace-statusbar" id="main-statusbar">
+            <div class="statusbar-left">
+                <span class="statusbar-item" title="Git Branch">&#9776; main</span>
+                <span class="statusbar-item">&#10003; 0 Problems</span>
+                <span class="statusbar-item" id="status-runner-indicator">
+                    <span class="status-dot">&#9679;</span> <span id="status-runner-text">Stopped</span>
+                </span>
+                <span class="statusbar-item" id="status-uptime-pill" style="display: none;">Uptime: 00:00</span>
+            </div>
+            <div class="statusbar-right">
+                <span class="statusbar-item" id="status-comments-count">💬 0 comments</span>
+                <span class="statusbar-item" id="status-cursor">Ln 1, Col 1</span>
+                <span class="statusbar-item">Spaces: 2</span>
+                <span class="statusbar-item">UTF-8</span>
+                <span class="statusbar-item" id="status-language">@Model.TemplateName</span>
+                <span class="statusbar-item" id="status-save-state">&#10003; Saved</span>
+            </div>
+        </footer>
+    </div>
+
+
+    <partial name="_MeroSpaceModals" />
+
+    @Html.AntiForgeryToken()
+
+    <script>
+        window.MeroSpaceConfig = {
+            projectId: '@Model.ProjectId',
+            projectTemplate: '@Model.TemplateId',
+            projectName: '@Model.ProjectName',
+            token: document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+        };
+    </script>
+    <!-- Monaco Editor Loader -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
+    <script src="~/js/merospace.js" asp-append-version="true"></script>
+</body>
+</html>

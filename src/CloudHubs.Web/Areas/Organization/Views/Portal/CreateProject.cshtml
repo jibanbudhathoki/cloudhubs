@@ -1,0 +1,233 @@
+@model CreateOrganizationProjectViewModel
+@{
+    Layout = null;
+    ViewData["Title"] = "Create project";
+}
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Create project - @Model.OrganizationName - CloudHubs</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/portal.css" />
+</head>
+<body>
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+    <div class="admin-shell">
+        <aside class="admin-sidebar organization-sidebar">
+            <a class="brand" href="/organization">
+                <span class="brand-mark">C</span>
+                <span><strong>CloudHubs</strong><small>ORGANIZATION</small></span>
+            </a>
+            <p class="role-label">CURRENT ORGANIZATION</p>
+            <div class="role-switch">
+                <span class="tenant-mark">@Model.OrganizationName[..Math.Min(Model.OrganizationName.Length, 2)].ToUpperInvariant()</span>
+                <span><strong>@Model.OrganizationName</strong><small>@Model.OrganizationSlug</small></span>
+            </div>
+            <nav class="side-nav" aria-label="Workspace sections">
+                <a class="side-link" href="/organization">Overview</a>
+                <a class="side-link active" href="/organization/projects">Projects</a>
+                <a class="side-link" href="/organization/merospace">MeroSpace</a>
+                <a class="side-link" href="/organization/members">Members</a>
+                <a class="side-link" href="/organization#account">My account</a>
+            </nav>
+            <div class="sidebar-spacer"></div>
+            <div class="system-card">
+                <span class="system-dot"></span>
+                <div class="system-links">
+                    <strong>Organization Workspace</strong>
+                    <span>Template catalog enabled</span>
+                </div>
+            </div>
+        </aside>
+
+        <main class="admin-main" id="main-content" tabindex="-1">
+            <header class="topbar">
+                <div class="breadcrumbs">
+                    <a href="/organization">Workspace</a>
+                    <span>/</span>
+                    <a href="/organization#projects">@Model.OrganizationName</a>
+                    <span>/</span>
+                    <a href="/organization#projects">Projects</a>
+                    <span>/</span>
+                    <strong>Create project</strong>
+                </div>
+                <div class="heading-actions">
+                    <span class="count organization-usage">
+                        Projects @Model.ProjectCount
+                        @(Model.MaxProjects > 0 ? $"of {Model.MaxProjects} allowed" : "· Unlimited")
+                    </span>
+                    <a class="btn btn-outline-secondary btn-sm" href="/organization#projects">Back to projects</a>
+                </div>
+            </header>
+
+            <div class="page-content organization-content">
+                @if (TempData["Error"] is string error)
+                {
+                    <div class="alert alert-danger" role="alert">@error</div>
+                }
+                @if (!ViewData.ModelState.IsValid)
+                {
+                    <div class="alert alert-danger" asp-validation-summary="All" role="alert"></div>
+                }
+
+                <section class="page-heading">
+                    <div>
+                        <p class="eyebrow">NEW PROJECT · @Model.OrganizationName.ToUpperInvariant()</p>
+                        <h1>Create a new project</h1>
+                        <p>Choose an architectural template and configure your project workspace.</p>
+                    </div>
+                </section>
+
+                @if (!Model.CanCreateProject)
+                {
+                    <div class="alert alert-warning" role="alert">
+                        <strong>Project limit reached.</strong> Your @Model.PlanName plan allows up to @Model.MaxProjects projects. Upgrade your subscription to add more projects.
+                    </div>
+                    <a class="btn btn-outline-secondary" href="/organization#projects">Return to workspace</a>
+                }
+                else
+                {
+                    <form method="post" action="/organization/projects/create?source=page" class="surface p-4" id="create-project-form">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="OrganizationId" value="@Model.OrganizationId" />
+
+                        <div class="mb-4">
+                            <h2 class="h5 mb-1 text-dark fw-bold">1. Select Project Template</h2>
+                            <p class="text-muted small mb-3">Templates provide ready-to-run boilerplate code, dependency manifests, and directory structure.</p>
+
+                            <div class="template-grid" role="radiogroup" aria-label="Project templates">
+                                @foreach (var template in Model.AvailableTemplates)
+                                {
+                                    var isChecked = string.Equals(Model.TemplateId, template.Id, StringComparison.OrdinalIgnoreCase)
+                                        || (string.IsNullOrWhiteSpace(Model.TemplateId) && template.Id == "nodejs-mvc");
+                                    <label class="template-card @(isChecked ? "active" : "")" for="tpl-@template.Id">
+                                        <input type="radio" id="tpl-@template.Id" name="TemplateId" value="@template.Id" @(isChecked ? "checked" : "") required />
+                                        <div class="template-card-header">
+                                            <span class="template-card-icon template-icon-@template.Icon">
+                                                @(template.Id switch {
+                                                    "nodejs-mvc" => "MVC",
+                                                    "nodejs-modules" => "MOD",
+                                                    "go" => "GO",
+                                                    "java" => "JV",
+                                                    _ => "DEF"
+                                                })
+                                            </span>
+                                            <div>
+                                                <h3 class="template-card-title">@template.Name</h3>
+                                                <span class="template-card-lang">@template.Language</span>
+                                            </div>
+                                        </div>
+                                        <p class="template-card-desc">@template.Description</p>
+                                        <ul class="template-card-features">
+                                            @foreach (var feature in template.Features.Take(3))
+                                            {
+                                                <li>@feature</li>
+                                            }
+                                        </ul>
+                                        <div class="template-files-preview">
+                                            @foreach (var file in template.StarterFiles.Take(4))
+                                            {
+                                                <span class="template-files-tag">@file</span>
+                                            }
+                                            @if (template.StarterFiles.Count > 4)
+                                            {
+                                                <span class="template-files-tag">+@(template.StarterFiles.Count - 4) more</span>
+                                            }
+                                        </div>
+                                    </label>
+                                }
+                            </div>
+                        </div>
+
+                        <hr class="my-4 text-muted opacity-25" />
+
+                        <div class="mb-4">
+                            <h2 class="h5 mb-1 text-dark fw-bold">2. Project Details</h2>
+                            <p class="text-muted small mb-3">Define the identity and location for your project.</p>
+
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold small" for="project-name">Project name</label>
+                                    <input class="form-control" id="project-name" name="Name" value="@Model.Name" maxlength="200" placeholder="e.g. Order Service, Customer Portal" required autocomplete="off" />
+                                    <small class="form-text text-muted">A clear human-readable name for your project.</small>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold small" for="project-slug">Project slug</label>
+                                    <input class="form-control font-monospace" id="project-slug" name="Slug" value="@Model.Slug" maxlength="120" pattern="[a-zA-Z0-9_-]+" placeholder="e.g. order-service" required spellcheck="false" />
+                                    <small class="form-text text-muted">Used in URLs and directory paths. Only letters, numbers, hyphens, and underscores.</small>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label fw-semibold small" for="project-description">Description <span class="text-muted fw-normal">(optional)</span></label>
+                                    <textarea class="form-control" id="project-description" name="Description" maxlength="2000" rows="3" placeholder="Briefly describe what this project does...">@Model.Description</textarea>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label fw-semibold small" for="project-rootpath">Root Path</label>
+                                    <input class="form-control font-monospace text-muted" id="project-rootpath" name="RootPath" value="@Model.RootPath" maxlength="500" placeholder="projects/@Model.OrganizationSlug/your-project-slug" />
+                                    <small class="form-text text-muted">Filesystem path where project boilerplate will be initialized. Defaults to <code>projects/@Model.OrganizationSlug/{slug}</code>.</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-end gap-2 pt-2 border-top">
+                            <a class="btn btn-outline-secondary" href="/organization#projects">Cancel</a>
+                            <button class="btn btn-success" type="submit" id="submit-btn">Create project</button>
+                        </div>
+                    </form>
+                }
+            </div>
+        </main>
+    </div>
+
+    <script>
+        (function() {
+            var nameInput = document.getElementById('project-name');
+            var slugInput = document.getElementById('project-slug');
+            var rootPathInput = document.getElementById('project-rootpath');
+            var orgSlug = '@Model.OrganizationSlug';
+            var userEditedSlug = false;
+
+            if (slugInput && slugInput.value.trim().length > 0) {
+                userEditedSlug = true;
+            }
+
+            slugInput.addEventListener('input', function() {
+                userEditedSlug = true;
+                updateRootPath();
+            });
+
+            nameInput.addEventListener('input', function() {
+                if (!userEditedSlug) {
+                    var slug = nameInput.value.toLowerCase().trim()
+                        .replace(/[^a-z0-9_-]+/g, '-')
+                        .replace(/^-+|-+$/g, '');
+                    slugInput.value = slug;
+                    updateRootPath();
+                }
+            });
+
+            function updateRootPath() {
+                var currentSlug = slugInput.value.trim() || 'project-slug';
+                if (!rootPathInput.dataset.custom) {
+                    rootPathInput.placeholder = 'projects/' + orgSlug + '/' + currentSlug;
+                }
+            }
+
+            rootPathInput.addEventListener('input', function() {
+                rootPathInput.dataset.custom = rootPathInput.value.trim().length > 0 ? 'true' : '';
+            });
+
+            // Template card radio styling
+            var templateCards = document.querySelectorAll('.template-card');
+            templateCards.forEach(function(card) {
+                card.addEventListener('click', function() {
+                    templateCards.forEach(function(c) { c.classList.remove('active'); });
+                    card.classList.add('active');
+                });
+            });
+        })();
+    </script>
+</body>
+</html>
+

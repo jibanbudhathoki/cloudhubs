@@ -1,3 +1,4 @@
+using CloudHubs.Application.Modules.Projects.DTOs;
 using CloudHubs.Web.ViewModels.Projects;
 
 namespace CloudHubs.Web.ViewModels.Organizations;
@@ -10,6 +11,7 @@ public sealed class OrganizationPortalIndexViewModel
     public OrganizationPortalCurrentOrganizationViewModel? CurrentOrganization { get; init; }
     public IReadOnlyCollection<OrganizationPortalProjectViewModel> Projects { get; init; } = [];
     public IReadOnlyCollection<OrganizationPortalMemberViewModel> Members { get; init; } = [];
+    public IReadOnlyCollection<ProjectTemplate> AvailableTemplates { get; init; } = [];
     public bool CanViewProjects { get; init; }
     public bool CanManageProjects { get; init; }
     public bool CanViewMembers { get; init; }

@@ -29,16 +29,17 @@
                     <span><strong>@currentOrganization.Name</strong><small>@currentOrganization.Role</small></span>
                 </div>
                 <nav class="side-nav" aria-label="Workspace sections">
-                    <a class="side-link active" href="#overview">Overview</a>
+                    <a class="side-link active" href="/organization">Overview</a>
                     @if (Model.CanViewProjects)
                     {
-                        <a class="side-link" href="#projects">Projects</a>
+                        <a class="side-link" href="/organization/projects">Projects</a>
+                        <a class="side-link" href="/organization/merospace">MeroSpace</a>
                     }
                     @if (Model.CanViewMembers)
                     {
                         <a class="side-link" href="/organization/members">Members</a>
                     }
-                    <a class="side-link" href="#account">My account</a>
+                    <a class="side-link" href="/organization#account">My account</a>
                 </nav>
                 @if (Model.Organizations.Count > 1)
                 {
@@ -189,12 +190,18 @@
                         <section class="surface organization-section" id="projects">
                             <div class="surface-heading">
                                 <div><h2>Projects</h2><p>Projects belonging to @currentOrganization.Name.</p></div>
-                                <span class="count">@Model.Projects.Count</span>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="count">@Model.Projects.Count</span>
+                                    @if (Model.CanManageProjects)
+                                    {
+                                        <a class="btn btn-success btn-sm" href="/organization/projects/create">+ Create project</a>
+                                    }
+                                </div>
                             </div>
                             @if (Model.CanManageProjects)
                             {
                                 <details class="organization-inline-form">
-                                    <summary class="btn btn-success btn-sm">Create project</summary>
+                                    <summary class="btn btn-outline-secondary btn-sm">Quick add project</summary>
                                     <form method="post" action="/organization/projects/create" class="organization-form-grid">
                                         @Html.AntiForgeryToken()
                                         <input type="hidden" name="OrganizationId" value="@currentOrganization.Id" />
@@ -206,17 +213,36 @@
                                             <label class="form-label" for="project-slug">Project slug</label>
                                             <input class="form-control" id="project-slug" name="Slug" maxlength="120" pattern="[a-zA-Z0-9_-]+" required />
                                         </div>
-                                        <div class="organization-form-wide">
-                                            <label class="form-label" for="project-description">Description</label>
-                                            <textarea class="form-control" id="project-description" name="Description" maxlength="2000" rows="2"></textarea>
+                                        <div>
+                                            <label class="form-label" for="project-template">Architecture template</label>
+                                            <select class="form-select" id="project-template" name="TemplateId">
+                                                @foreach (var template in Model.AvailableTemplates)
+                                                {
+                                                    <option value="@template.Id" selected="@(template.Id == "nodejs-mvc")">@template.Name (@template.Language)</option>
+                                                }
+                                            </select>
                                         </div>
-                                        <div class="organization-form-actions"><button class="btn btn-success btn-sm" type="submit">Save project</button></div>
+                                        <div>
+                                            <label class="form-label" for="project-description">Description</label>
+                                            <input class="form-control" id="project-description" name="Description" maxlength="2000" />
+                                        </div>
+                                        <div class="organization-form-actions d-flex justify-content-between align-items-center">
+                                            <a class="text-link" href="/organization/projects/create">Browse full template catalog & details &rarr;</a>
+                                            <button class="btn btn-success btn-sm" type="submit">Save project</button>
+                                        </div>
                                     </form>
                                 </details>
                             }
                             @if (Model.Projects.Count == 0)
                             {
-                                <div class="empty-state"><strong>No projects yet</strong><span>Projects created here will be available to organization members.</span></div>
+                                <div class="empty-state">
+                                    <strong>No projects yet</strong>
+                                    <span>Get started by creating a project with a pre-configured template like Node.js MVC, Node.js Modules, Go, or Java.</span>
+                                    @if (Model.CanManageProjects)
+                                    {
+                                        <a class="btn btn-success btn-sm mt-2" href="/organization/projects/create">Create your first project</a>
+                                    }
+                                </div>
                             }
                             else
                             {
@@ -225,6 +251,7 @@
                                         <thead>
                                             <tr>
                                                 <th>Project</th>
+                                                <th>Template</th>
                                                 <th>Description</th>
                                                 <th>Created</th>
                                                 @if (Model.CanManageProjects)
@@ -237,20 +264,44 @@
                                         @foreach (var project in Model.Projects)
                                         {
                                             <tr>
-                                                <td><div class="org-cell"><span class="org-monogram">PR</span><span><strong>@project.Name</strong><small>@project.Slug</small></span></div></td>
+                                                <td>
+                                                    <div class="org-cell">
+                                                        <span class="org-monogram">
+                                                            @(project.TemplateId switch {
+                                                                "nodejs-mvc" => "MVC",
+                                                                "nodejs-modules" => "MOD",
+                                                                "go" => "GO",
+                                                                "java" => "JV",
+                                                                _ => "PR"
+                                                            })
+                                                        </span>
+                                                        <span><strong>@project.Name</strong><small>@project.Slug</small></span>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <span class="template-badge badge-@project.TemplateId">@project.TemplateName</span>
+                                                </td>
                                                 <td>@(string.IsNullOrWhiteSpace(project.Description) ? "—" : project.Description)</td>
                                                 <td>@project.CreatedAt.ToLocalTime().ToString("MMM d, yyyy")</td>
-                                                @if (Model.CanManageProjects)
-                                                {
-                                                    <td>
-                                                        <form method="post" action="/organization/projects/delete" onsubmit="return confirm('Delete this project?');">
-                                                            @Html.AntiForgeryToken()
-                                                            <input type="hidden" name="organizationId" value="@currentOrganization.Id" />
-                                                            <input type="hidden" name="projectId" value="@project.Id" />
-                                                            <button class="btn btn-outline-danger btn-sm" type="submit">Delete</button>
-                                                        </form>
-                                                    </td>
-                                                }
+                                                <td>
+                                                    <div class="d-flex align-items-center gap-2">
+                                                        <a class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" href="/organization/merospace/@project.Id" title="Open MeroSpace IDE">
+                                                            <span>&#9654;</span> MeroSpace
+                                                        </a>
+                                                        <a class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-1" href="/organization/merospace/@project.Id/download" title="Download all project files as ZIP">
+                                                            <span>⬇</span> Download
+                                                        </a>
+                                                        @if (Model.CanManageProjects)
+                                                        {
+                                                            <form method="post" action="/organization/projects/delete" onsubmit="return confirm('Delete this project?');" class="d-inline">
+                                                                @Html.AntiForgeryToken()
+                                                                <input type="hidden" name="organizationId" value="@currentOrganization.Id" />
+                                                                <input type="hidden" name="projectId" value="@project.Id" />
+                                                                <button class="btn btn-outline-danger btn-sm" type="submit">Delete</button>
+                                                            </form>
+                                                        }
+                                                    </div>
+                                                </td>
                                             </tr>
                                         }
                                         </tbody>

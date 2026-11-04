@@ -25,4 +25,11 @@
     <ProjectReference Include="../CloudHubs.Infrastructure/CloudHubs.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Remove="../../projects/**" />
+    <Content Remove="../../projects/**" />
+    <None Remove="../../projects/**" />
+    <Watch Remove="../../projects/**" />
+  </ItemGroup>
+
 </Project>

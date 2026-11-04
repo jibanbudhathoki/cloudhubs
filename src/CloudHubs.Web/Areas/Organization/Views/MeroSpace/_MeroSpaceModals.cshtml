@@ -1,0 +1,79 @@
+<!-- Custom Right-Click Context Menu -->
+<div class="merospace-context-menu" id="custom-context-menu">
+    <div class="ctx-item" onclick="contextAction('new-file')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+        <span>New File...</span>
+    </div>
+    <div class="ctx-item" onclick="contextAction('new-folder')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg>
+        <span>New Folder...</span>
+    </div>
+    <div class="dropdown-divider"></div>
+    <div class="ctx-item" onclick="contextAction('rename')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        <span>Rename</span>
+        <span class="ctx-shortcut">F2</span>
+    </div>
+    <div class="ctx-item" onclick="contextAction('delete')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        <span>Delete</span>
+        <span class="ctx-shortcut">Del</span>
+    </div>
+    <div class="dropdown-divider"></div>
+    <div class="ctx-item" onclick="contextAction('copy-path')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <span>Copy Relative Path</span>
+    </div>
+    <div class="ctx-item" onclick="contextAction('add-comment')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <span>Add Comment on File</span>
+    </div>
+</div>
+
+<!-- Create Item Modal -->
+<div class="merospace-modal" id="modal-new-item">
+    <div class="modal-box">
+        <div class="modal-title" id="modal-title">Create New File</div>
+        <input class="sidebar-input" id="modal-input-name" placeholder="src/example.js" autocomplete="off" />
+        <input type="hidden" id="modal-is-directory" value="false" />
+        <input type="hidden" id="modal-parent-dir" value="" />
+        <div class="d-flex justify-content-end gap-2 mt-3">
+            <button class="btn btn-sm btn-outline-secondary" onclick="closeModal('modal-new-item')">Cancel</button>
+            <button class="btn btn-sm btn-success" onclick="submitCreateItem()">Create</button>
+        </div>
+    </div>
+</div>
+
+<!-- Add Code Comment Modal -->
+<div class="merospace-modal" id="modal-add-comment">
+    <div class="modal-box">
+        <div class="modal-title">
+            <span>💬 Add Code Comment</span>
+        </div>
+        <div class="mb-2">
+            <span class="comment-file-badge" id="comment-target-file">src/index.js:1</span>
+        </div>
+        <div class="comment-snippet" id="comment-target-snippet" style="display: none;"></div>
+        <textarea class="sidebar-input" id="comment-input-content" rows="4" placeholder="Write a comment or code review note for the team..."></textarea>
+        <div class="d-flex justify-content-end gap-2 mt-2">
+            <button class="btn btn-sm btn-outline-secondary" onclick="closeModal('modal-add-comment')">Cancel</button>
+            <button class="btn btn-sm btn-warning" onclick="submitAddComment()">Post Comment</button>
+        </div>
+    </div>
+</div>
+
+<!-- Live Preview Modal -->
+<div class="merospace-modal" id="modal-live-preview">
+    <div class="modal-box preview-modal-box">
+        <div class="preview-bar">
+            <span style="color: #27c93f;">● Live Server</span>
+            <input class="preview-address-bar" id="preview-url" value="http://localhost:3000/" readonly />
+            <button class="btn btn-sm btn-outline-light" onclick="refreshPreview()">↻ Refresh</button>
+            <button class="btn btn-sm btn-outline-secondary" onclick="closeModal('modal-live-preview')">✕</button>
+        </div>
+        <div class="preview-content" id="preview-frame">
+            <!-- Dynamically generated simulated response based on project template -->
+        </div>
+    </div>
+</div>
+

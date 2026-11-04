@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using CloudHubs.Application.Modules.Organizations.DTOs;
 using CloudHubs.Application.Modules.Organizations.Interfaces;
 using CloudHubs.Application.Modules.Organizations.Services;
+using CloudHubs.Application.Modules.Projects.Interfaces;
 using CloudHubs.Application.Modules.Subscriptions.Services;
 using CloudHubs.Application.Modules.Users.Interfaces;
 using CloudHubs.Domain.Entities;
@@ -31,6 +32,7 @@ public class PortalController(
     OrganizationPermissionService permissionService,
     OrganizationService organizationService,
     AccountSubscriptionService accountSubscriptionService,
+    IProjectTemplateService templateService,
     ILogger<PortalController> logger) : Controller
 {
     [HttpGet("/login")]
@@ -222,8 +224,19 @@ public class PortalController(
                     membership.Organization.Slug,
                     membership.CustomRole?.Name ?? membership.Role.ToString())).ToArray(),
             CurrentOrganization = currentOrganization,
-            Projects = projects.Select(project => new OrganizationPortalProjectViewModel(
-                project.Id, project.Name, project.Slug, project.Description, project.CreatedAt)).ToArray(),
+            Projects = projects.Select(project =>
+            {
+                var template = templateService.GetTemplate(project.TemplateId);
+                return new OrganizationPortalProjectViewModel(
+                    project.Id,
+                    project.Name,
+                    project.Slug,
+                    project.Description,
+                    project.CreatedAt,
+                    project.TemplateId,
+                    template?.Name ?? project.TemplateId,
+                    project.RootPath);
+            }).ToArray(),
             Members = members.Select(membership => new OrganizationPortalMemberViewModel(
                 membership.UserId,
                 membership.User.LoginId ?? string.Empty,
@@ -232,6 +245,7 @@ public class PortalController(
                 membership.CustomRole?.Name ?? membership.Role.ToString(),
                 membership.Role == OrganizationMemberRole.Owner,
                 membership.CustomRole is not null)).ToArray(),
+            AvailableTemplates = templateService.GetTemplates(),
             CanViewProjects = canViewProjects,
             CanManageProjects = canManageProjects,
             CanViewMembers = canViewMembers,
@@ -247,20 +261,154 @@ public class PortalController(
         });
     }
 
+    [HttpGet("projects")]
+    [Authorize(AuthenticationSchemes = TenantCookieDefaults.AuthenticationScheme, Roles = "OrganizationMember")]
+    public async Task<IActionResult> Projects(CancellationToken cancellationToken)
+    {
+        if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId)
+            || !Guid.TryParse(User.FindFirstValue("OrganizationId"), out var organizationId))
+        {
+            return RedirectToAction(nameof(Index));
+        }
+
+        var memberships = await roleRepository.GetMembershipsForUserAsync(userId, cancellationToken);
+        var membership = memberships
+            .FirstOrDefault(candidate => candidate.OrganizationId == organizationId && candidate.Organization.IsAvailableForUse());
+        if (membership is null
+            || !await permissionService.HasPermissionAsync(organizationId, userId, OrganizationPermission.ViewProjects, cancellationToken))
+        {
+            return Forbid(TenantCookieDefaults.AuthenticationScheme);
+        }
+
+        var organization = membership.Organization;
+        var plan = organization.AccountSubscription?.Plan ?? organization.Subscription?.Plan;
+        var canManageProjects = await permissionService.HasPermissionAsync(
+            organizationId, userId, OrganizationPermission.ManageProjects, cancellationToken);
+        var canViewMembers = await permissionService.HasPermissionAsync(
+            organizationId, userId, OrganizationPermission.ViewMembers, cancellationToken);
+        var canManageMembers = await permissionService.HasPermissionAsync(
+            organizationId, userId, OrganizationPermission.ManageMembers, cancellationToken);
+
+        var projects = await tenantService.GetProjectsAsync(organizationId, userId, cancellationToken, requireApiAccess: false);
+        var accountSubscription = await GetCurrentAccountSubscriptionAsync(cancellationToken);
+        var accountOrganizationCount = accountSubscription is null
+            ? 0
+            : await accountSubscriptionService.GetOrganizationCountAsync(accountSubscription.Id, cancellationToken);
+        var maxOrganizations = accountSubscription?.Plan.MaxOrganizations ?? 0;
+
+        return View("Projects", new OrganizationPortalIndexViewModel
+        {
+            UserName = User.Identity?.Name ?? "Organization member",
+            UserEmail = User.FindFirstValue(ClaimTypes.Email) ?? string.Empty,
+            Organizations = memberships
+                .Where(m => m.Organization.IsAvailableForUse())
+                .Select(m => new OrganizationPortalMembershipViewModel(
+                    m.OrganizationId,
+                    m.Organization.Name,
+                    m.Organization.Email,
+                    m.Organization.Slug,
+                    m.CustomRole?.Name ?? m.Role.ToString())).ToArray(),
+            CurrentOrganization = new OrganizationPortalCurrentOrganizationViewModel(
+                organization.Id,
+                organization.Name,
+                organization.Email,
+                organization.Slug,
+                membership.CustomRole?.Name ?? membership.Role.ToString(),
+                plan?.Name ?? "No plan",
+                organization.AccountSubscription?.ExpiresAt ?? organization.Subscription?.ExpiresAt,
+                plan?.MaxProjects ?? 0,
+                plan?.MaxMembers ?? 0),
+            Projects = projects.Select(p =>
+            {
+                var template = templateService.GetTemplate(p.TemplateId);
+                return new OrganizationPortalProjectViewModel(
+                    p.Id,
+                    p.Name,
+                    p.Slug,
+                    p.Description,
+                    p.CreatedAt,
+                    p.TemplateId,
+                    template?.Name ?? p.TemplateId,
+                    p.RootPath);
+            }).ToArray(),
+            AvailableTemplates = templateService.GetTemplates(),
+            CanViewProjects = true,
+            CanManageProjects = canManageProjects,
+            CanViewMembers = canViewMembers,
+            CanManageMembers = canManageMembers,
+            CanShowOrganizationAction = accountSubscription is not null
+                || memberships.Any(m => m.Role == OrganizationMemberRole.Owner),
+            HasAccountSubscription = accountSubscription is not null,
+            AccountOrganizationCount = accountOrganizationCount,
+            MaxOrganizations = maxOrganizations
+        });
+    }
+
+    [HttpGet("projects/create")]
+    [Authorize(AuthenticationSchemes = TenantCookieDefaults.AuthenticationScheme, Roles = "OrganizationMember")]
+    public async Task<IActionResult> CreateProject(CancellationToken cancellationToken)
+    {
+        if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId)
+            || !Guid.TryParse(User.FindFirstValue("OrganizationId"), out var organizationId))
+        {
+            return RedirectToAction(nameof(Index));
+        }
+
+        var memberships = await roleRepository.GetMembershipsForUserAsync(userId, cancellationToken);
+        var membership = memberships
+            .FirstOrDefault(candidate => candidate.OrganizationId == organizationId && candidate.Organization.IsAvailableForUse());
+        if (membership is null
+            || !await permissionService.HasPermissionAsync(organizationId, userId, OrganizationPermission.ManageProjects, cancellationToken))
+        {
+            return Forbid(TenantCookieDefaults.AuthenticationScheme);
+        }
+
+        var organization = membership.Organization;
+        var plan = organization.AccountSubscription?.Plan ?? organization.Subscription?.Plan;
+        var projects = await tenantService.GetProjectsAsync(organizationId, userId, cancellationToken, requireApiAccess: false);
+        var maxProjects = plan?.MaxProjects ?? 0;
+        var canCreate = maxProjects == 0 || projects.Count < maxProjects;
+
+        return View("CreateProject", new CreateOrganizationProjectViewModel
+        {
+            OrganizationId = organization.Id,
+            OrganizationName = organization.Name,
+            OrganizationSlug = organization.Slug,
+            TemplateId = "nodejs-mvc",
+            AvailableTemplates = templateService.GetTemplates(),
+            PlanName = plan?.Name ?? "No plan",
+            ProjectCount = projects.Count,
+            MaxProjects = maxProjects,
+            CanCreateProject = canCreate
+        });
+    }
+
     [HttpPost("projects/create")]
     [Authorize(AuthenticationSchemes = TenantCookieDefaults.AuthenticationScheme, Roles = "OrganizationMember")]
     public async Task<IActionResult> CreateProject(
         OrganizationPortalProjectFormModel model,
+        [FromQuery] string? source,
         CancellationToken cancellationToken)
     {
         if (!ModelState.IsValid)
         {
+            if (string.Equals(source, "page", StringComparison.OrdinalIgnoreCase))
+            {
+                return await RenderCreateProjectPageWithErrorAsync(model, "Enter a project name and a valid slug using letters, numbers, hyphens, or underscores.", cancellationToken);
+            }
             TempData["Error"] = "Enter a project name and a valid slug using letters, numbers, hyphens, or underscores.";
             return RedirectToAction(nameof(Index));
         }
 
-        return await RunPortalActionAsync(
-            userId => tenantService.CreateProjectAsync(
+        if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+        {
+            await HttpContext.SignOutAsync(TenantCookieDefaults.AuthenticationScheme);
+            return RedirectToAction(nameof(Login));
+        }
+
+        try
+        {
+            var project = await tenantService.CreateProjectAsync(
                 model.OrganizationId,
                 userId,
                 model.Name,
@@ -269,10 +417,76 @@ public class PortalController(
                 model.RootPath,
                 model.TemplateId,
                 cancellationToken,
-                requireApiAccess: false),
-            "Project created.",
-            "The project could not be created.",
-            cancellationToken);
+                requireApiAccess: false);
+
+            var template = templateService.GetTemplate(project.TemplateId);
+            TempData["Success"] = $"Project '{project.Name}' created using the {template?.Name ?? project.TemplateId} template.";
+            return RedirectToAction("Index", "MeroSpace", new { projectId = project.Id });
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid(TenantCookieDefaults.AuthenticationScheme);
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException && exception is (ArgumentException or InvalidOperationException))
+        {
+            if (string.Equals(source, "page", StringComparison.OrdinalIgnoreCase))
+            {
+                return await RenderCreateProjectPageWithErrorAsync(model, exception.Message, cancellationToken);
+            }
+            TempData["Error"] = exception.Message;
+            return RedirectToAction(nameof(Index));
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            logger.LogError(exception, "The project could not be created for user {UserId}.", userId);
+            if (string.Equals(source, "page", StringComparison.OrdinalIgnoreCase))
+            {
+                return await RenderCreateProjectPageWithErrorAsync(model, "The project could not be created. Please try again later.", cancellationToken);
+            }
+            TempData["Error"] = "The project could not be created.";
+            return RedirectToAction(nameof(Index));
+        }
+    }
+
+    private async Task<IActionResult> RenderCreateProjectPageWithErrorAsync(
+        OrganizationPortalProjectFormModel model,
+        string error,
+        CancellationToken cancellationToken)
+    {
+        ModelState.AddModelError(string.Empty, error);
+        if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+        {
+            return RedirectToAction(nameof(Index));
+        }
+
+        var memberships = await roleRepository.GetMembershipsForUserAsync(userId, cancellationToken);
+        var membership = memberships.FirstOrDefault(candidate => candidate.OrganizationId == model.OrganizationId);
+        var organization = membership?.Organization;
+        var plan = organization?.AccountSubscription?.Plan ?? organization?.Subscription?.Plan;
+        var projectCount = model.OrganizationId != Guid.Empty
+            ? (await tenantService.GetProjectsAsync(model.OrganizationId, userId, cancellationToken, requireApiAccess: false)).Count
+            : 0;
+
+        return View("CreateProject", new CreateOrganizationProjectViewModel
+        {
+            OrganizationId = model.OrganizationId,
+            OrganizationName = organization?.Name ?? string.Empty,
+            OrganizationSlug = organization?.Slug ?? string.Empty,
+            Name = model.Name,
+            Slug = model.Slug,
+            Description = model.Description,
+            RootPath = model.RootPath,
+            TemplateId = model.TemplateId,
+            AvailableTemplates = templateService.GetTemplates(),
+            PlanName = plan?.Name ?? "No plan",
+            ProjectCount = projectCount,
+            MaxProjects = plan?.MaxProjects ?? 0,
+            CanCreateProject = plan?.MaxProjects == 0 || projectCount < (plan?.MaxProjects ?? 0)
+        });
     }
 
     [HttpGet("members")]

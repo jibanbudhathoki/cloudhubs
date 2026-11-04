@@ -1,0 +1,114 @@
+@model MeroSpaceLaunchpadViewModel
+@{
+    Layout = null;
+    ViewData["Title"] = "MeroSpace Launchpad";
+}
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>MeroSpace Launchpad - @Model.OrganizationName - CloudHubs</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/portal.css" />
+</head>
+<body>
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+    <div class="admin-shell">
+        <aside class="admin-sidebar organization-sidebar">
+            <a class="brand" href="/organization">
+                <span class="brand-mark">C</span>
+                <span><strong>CloudHubs</strong><small>ORGANIZATION</small></span>
+            </a>
+            <p class="role-label">CURRENT ORGANIZATION</p>
+            <div class="role-switch">
+                <span class="tenant-mark">@Model.OrganizationName[..Math.Min(Model.OrganizationName.Length, 2)].ToUpperInvariant()</span>
+                <span><strong>@Model.OrganizationName</strong><small>Workspace</small></span>
+            </div>
+            <nav class="side-nav" aria-label="Workspace sections">
+                <a class="side-link" href="/organization">Overview</a>
+                <a class="side-link" href="/organization/projects">Projects</a>
+                <a class="side-link active" href="/organization/merospace" aria-current="page">MeroSpace</a>
+                <a class="side-link" href="/organization/members">Members</a>
+                <a class="side-link" href="/organization#account">My account</a>
+            </nav>
+            <div class="sidebar-spacer"></div>
+            <div class="system-card">
+                <span class="system-dot"></span>
+                <div class="system-links">
+                    <strong>MeroSpace Cloud IDE</strong>
+                    <span>Visual Studio in your browser</span>
+                </div>
+            </div>
+        </aside>
+
+        <main class="admin-main" id="main-content" tabindex="-1">
+            <header class="topbar">
+                <div class="breadcrumbs">
+                    <a href="/organization">Workspace</a>
+                    <span>/</span>
+                    <a href="/organization/projects">@Model.OrganizationName</a>
+                    <span>/</span>
+                    <strong>MeroSpace</strong>
+                </div>
+                <div class="heading-actions">
+                    <a class="btn btn-outline-secondary btn-sm" href="/organization/projects">View projects</a>
+                    @if (Model.CanManageProjects)
+                    {
+                        <a class="btn btn-success btn-sm" href="/organization/projects/create">+ Create project</a>
+                    }
+                </div>
+            </header>
+
+            <div class="page-content organization-content">
+                <section class="page-heading">
+                    <div>
+                        <p class="eyebrow">CLOUD IDE &middot; @Model.OrganizationName.ToUpperInvariant()</p>
+                        <h1>MeroSpace Workspaces</h1>
+                        <p>Launch an in-browser code editor configured with your project's architecture, dependencies, and runner.</p>
+                    </div>
+                </section>
+
+                @if (Model.Workspaces.Count == 0)
+                {
+                    <div class="surface empty-state p-5">
+                        <div class="mb-3" style="font-size: 42px;">&#128187;</div>
+                        <h2 class="h5 fw-bold text-dark">No Projects Available for MeroSpace</h2>
+                        <p class="text-muted" style="max-width: 480px;">
+                            MeroSpace runs code workspaces for your projects. Select an architectural template (Node.js MVC, Node.js Modules, Go, or Java) to initialize your first project.
+                        </p>
+                        @if (Model.CanManageProjects)
+                        {
+                            <a class="btn btn-success mt-2" href="/organization/projects/create">Create project with template</a>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="row g-3">
+                        @foreach (var ws in Model.Workspaces)
+                        {
+                            <div class="col-md-6 col-lg-4">
+                                <div class="surface p-4 h-100 d-flex flex-direction-column justify-content-between">
+                                    <div>
+                                        <div class="d-flex align-items-center justify-content-between mb-2">
+                                            <span class="badge bg-secondary">@ws.TemplateName</span>
+                                            <span class="text-muted small">@ws.CreatedAt.ToString("MMM d, yyyy")</span>
+                                        </div>
+                                        <h3 class="h6 fw-bold text-dark mb-1">@ws.ProjectName</h3>
+                                        <p class="small text-muted mb-3 font-monospace">@ws.RootPath</p>
+                                    </div>
+                                    <a class="btn btn-primary w-100 mt-3" href="/organization/merospace/@ws.ProjectId">
+                                        Launch in MeroSpace &rarr;
+                                    </a>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </main>
+    </div>
+</body>
+</html>
+

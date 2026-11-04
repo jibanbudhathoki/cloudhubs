@@ -1,0 +1,60 @@
+@model PlatformProjectIndexViewModel
+@{
+    ViewData["Title"] = "Platform projects";
+    ViewData["Section"] = "Projects";
+}
+
+<section class="page-heading">
+    <div><p class="eyebrow">CONTROL PLANE / PLATFORM PROJECTS</p><h1>Platform projects</h1><p>Projects owned by CloudHubs, independent of customer organizations.</p></div>
+    <a class="btn btn-success" href="/su/projects/create">Create platform project</a>
+</section>
+
+<div class="alert alert-info" role="note">These projects belong to the platform owner. Creating one does not create or require an organization.</div>
+@if (!Model.IsDataAvailable)
+{
+    <div class="alert alert-warning" role="status">@Model.ErrorMessage</div>
+}
+
+<section class="surface">
+    <div class="surface-heading"><div><h2 id="platform-project-list-title">Platform-owned projects</h2><p>Search by name, slug, template, or description.</p></div><span class="count">@Model.Projects.Count</span></div>
+    <form class="organization-search" method="get" action="/su/projects" role="search" aria-labelledby="platform-project-list-title">
+        <label class="visually-hidden" for="platform-project-query">Search platform projects</label>
+        <input class="form-control" id="platform-project-query" name="query" type="search" value="@Model.Query" placeholder="Search platform projects…" autocomplete="off" />
+        <button class="btn btn-success" type="submit">Search</button>
+        @if (!string.IsNullOrWhiteSpace(Model.Query))
+        {
+            <a class="btn btn-outline-secondary" href="/su/projects">Clear</a>
+        }
+    </form>
+    <p class="visually-hidden" role="status" aria-live="polite">@Model.Projects.Count platform projects found.</p>
+    @if (TempData["Success"] is string successMessage)
+    {
+        <div class="alert alert-success mx-3" role="status">@successMessage</div>
+    }
+    @if (Model.Projects.Count > 0)
+    {
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <caption class="visually-hidden">Projects owned by CloudHubs</caption>
+                <thead><tr><th scope="col">Project</th><th scope="col">Owner</th><th scope="col">Template</th><th scope="col">Status</th><th scope="col">Created</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
+                <tbody>
+                    @foreach (var project in Model.Projects)
+                    {
+                        <tr>
+                            <td><div class="org-cell"><span class="org-monogram">MP</span><span><strong>@project.Name</strong><small>@project.Slug</small></span></div></td>
+                            <td>CloudHubs</td>
+                            <td>@project.TemplateId</td>
+                            <td><span class="status @(project.IsActive ? "status-active" : "status-suspended")">@(project.IsActive ? "Active" : "Inactive")</span></td>
+                            <td>@project.CreatedAt.ToLocalTime().ToString("MMM d, yyyy")</td>
+                            <td><div class="table-actions"><a class="btn btn-sm btn-outline-secondary" href="/su/projects/@project.Id/edit">Edit</a><form method="post" action="/su/projects/@project.Id/delete" onsubmit="return confirm('Delete this platform project?');">@Html.AntiForgeryToken()<button class="btn btn-sm btn-outline-danger" type="submit">Delete</button></form></div></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <div class="empty-state"><strong>@(!Model.IsDataAvailable ? "Project data unavailable" : Model.Query is not null ? "No matching projects" : "No platform projects yet")</strong><span>@(!Model.IsDataAvailable ? "Apply the project migration and check the database connection." : Model.Query is not null ? "Try another search term or clear the filter." : "Create a platform project without creating an organization.")</span></div>
+    }
+</section>

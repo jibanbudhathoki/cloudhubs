@@ -7,10 +7,14 @@ internal sealed class OrganizationProjectRepositoryStub : IOrganizationProjectRe
 {
     public int CurrentCount { get; init; }
     public Project? AddedProject { get; private set; }
+    public List<Project> Projects { get; } = [];
+
     public Task<IReadOnlyCollection<Project>> GetAllAsync(Guid organizationId, CancellationToken cancellationToken = default) =>
-        Task.FromResult<IReadOnlyCollection<Project>>([]);
+        Task.FromResult<IReadOnlyCollection<Project>>(Projects);
+
     public Task<Project?> GetByIdAsync(Guid organizationId, Guid projectId, CancellationToken cancellationToken = default) =>
-        Task.FromResult<Project?>(null);
+        Task.FromResult(Projects.FirstOrDefault(p => p.Id == projectId) ?? (AddedProject?.Id == projectId ? AddedProject : null));
+
     public Task<int> CountAsync(Guid organizationId, CancellationToken cancellationToken = default) => Task.FromResult(CurrentCount);
     public Task<bool> SlugExistsAsync(Guid organizationId, string slug, CancellationToken cancellationToken = default) => Task.FromResult(false);
     public Task<Project> AddAsync(Project project, CancellationToken cancellationToken = default)

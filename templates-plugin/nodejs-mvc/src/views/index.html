@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{PROJECT_NAME}} - CloudHubs</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5f7f4; color: #28332d; padding: 40px 20px; }
+    .card { max-width: 600px; margin: 0 auto; background: #fff; padding: 32px; border-radius: 8px; border: 1px solid #e5eae5; box-shadow: 0 2px 6px rgba(0,0,0,0.03); }
+    h1 { margin-top: 0; color: #1f795f; }
+    .badge { display: inline-block; padding: 4px 10px; background: #e9f3ee; color: #17674f; border-radius: 4px; font-size: 12px; font-weight: 600; }
+    ul { line-height: 1.8; }
+    code { background: #f1f4f0; padding: 2px 6px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <span class="badge">Node.js MVC</span>
+    <h1>{{PROJECT_NAME}}</h1>
+    <p>Welcome to your new Node.js MVC project hosted on CloudHubs!</p>
+    <h3>Architecture</h3>
+    <ul>
+      <li><code>src/controllers/</code>: Request handling & response generation</li>
+      <li><code>src/models/</code>: Data logic & model state</li>
+      <li><code>src/routes/</code>: Express routing endpoints</li>
+      <li><code>src/views/</code>: Static and view templates</li>
+    </ul>
+    <h3>API Endpoints</h3>
+    <ul>
+      <li><code>GET /health</code> - Application status</li>
+      <li><code>GET /api/items</code> - List items</li>
+      <li><code>POST /api/items</code> - Create an item</li>
+    </ul>
+  </div>
+</body>
+</html>
+

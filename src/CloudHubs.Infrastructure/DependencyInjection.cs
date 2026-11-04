@@ -30,6 +30,9 @@ public static class DependencyInjection
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IPlatformProjectRepository, PlatformProjectRepository>();
         services.AddScoped<IOrganizationProjectRepository, OrganizationProjectRepository>();
+        services.AddScoped<IProjectScaffolder, ProjectScaffolder>();
+        services.AddScoped<IProjectFileService, ProjectFileService>();
+        services.AddSingleton<IProjectProcessRunner, ProjectProcessRunner>();
 
         services.AddScoped<OrganizationCreatedNotificationSender>();
 

@@ -329,4 +329,106 @@ public class OrganizationTenantServiceTests
         Assert.Equal(OrganizationMemberRole.Developer, memberMembership.Role);
         Assert.Equal(organizationId, memberMembership.OrganizationId);
     }
+
+    [Fact]
+    public async Task CreateProjectAsync_ScaffoldsProjectFiles_WhenScaffolderIsProvided()
+    {
+        var organizationId = Guid.NewGuid();
+        var user = new User { Name = "Developer", Email = "dev@example.com" };
+        var organization = new Organization
+        {
+            Id = organizationId,
+            Slug = "acme-corp",
+            Subscription = new Subscription
+            {
+                Status = SubscriptionStatus.Active,
+                Plan = new SubscriptionPlan { HasApiAccess = true, MaxProjects = 10 }
+            }
+        };
+        var membership = new OrganizationMembership
+        {
+            OrganizationId = organizationId,
+            UserId = user.Id,
+            User = user,
+            Role = OrganizationMemberRole.Developer
+        };
+        var roleRepository = new OrganizationRoleRepositoryStub { Membership = membership };
+        var projectRepository = new OrganizationProjectRepositoryStub();
+        var scaffolder = new ProjectScaffolderStub();
+        var tenantService = new OrganizationTenantService(
+            new OrganizationRepositoryStub { ExistingOrganization = organization },
+            roleRepository,
+            projectRepository,
+            new UserRepositoryStub { Users = [user] },
+            new OrganizationPermissionService(roleRepository),
+            scaffolder);
+
+        var project = await tenantService.CreateProjectAsync(
+            organizationId,
+            user.Id,
+            "My Node Service",
+            "my-node-service",
+            "Express MVC project",
+            "",
+            "nodejs-mvc");
+
+        Assert.Equal("nodejs-mvc", project.TemplateId);
+        Assert.Equal("projects/acme-corp/my-node-service", project.RootPath);
+        Assert.True(scaffolder.ScaffoldCalled);
+        Assert.Equal("projects/acme-corp/my-node-service", scaffolder.LastRootPath);
+        Assert.Equal("nodejs-mvc", scaffolder.LastTemplateId);
+        Assert.Equal("acme-corp", scaffolder.LastOrgSlug);
+        Assert.Equal("my-node-service", scaffolder.LastProjectSlug);
+    }
+
+    [Theory]
+    [InlineData("nodejs-modules")]
+    [InlineData("go")]
+    [InlineData("java")]
+    public async Task CreateProjectAsync_SupportsVariousArchitecturalTemplates(string templateId)
+    {
+        var organizationId = Guid.NewGuid();
+        var user = new User { Name = "Developer", Email = "dev@example.com" };
+        var organization = new Organization
+        {
+            Id = organizationId,
+            Slug = "tech-lab",
+            Subscription = new Subscription
+            {
+                Status = SubscriptionStatus.Active,
+                Plan = new SubscriptionPlan { HasApiAccess = true, MaxProjects = 10 }
+            }
+        };
+        var membership = new OrganizationMembership
+        {
+            OrganizationId = organizationId,
+            UserId = user.Id,
+            User = user,
+            Role = OrganizationMemberRole.Developer
+        };
+        var roleRepository = new OrganizationRoleRepositoryStub { Membership = membership };
+        var projectRepository = new OrganizationProjectRepositoryStub();
+        var scaffolder = new ProjectScaffolderStub();
+        var tenantService = new OrganizationTenantService(
+            new OrganizationRepositoryStub { ExistingOrganization = organization },
+            roleRepository,
+            projectRepository,
+            new UserRepositoryStub { Users = [user] },
+            new OrganizationPermissionService(roleRepository),
+            scaffolder);
+
+        var project = await tenantService.CreateProjectAsync(
+            organizationId,
+            user.Id,
+            "Sample " + templateId,
+            "sample-" + templateId,
+            "Description for " + templateId,
+            "",
+            templateId);
+
+        Assert.Equal(templateId, project.TemplateId);
+        Assert.Equal($"projects/tech-lab/sample-{templateId}", project.RootPath);
+        Assert.True(scaffolder.ScaffoldCalled);
+        Assert.Equal(templateId, scaffolder.LastTemplateId);
+    }
 }

@@ -1,0 +1,11 @@
+{
+  "name": "{{PROJECT_SLUG}}",
+  "version": "1.0.0",
+  "description": "{{PROJECT_NAME}} - Node.js MVC Application (Zero External Dependencies)",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
+  },
+  "dependencies": {}
+}

@@ -18,4 +18,8 @@ appsettings.*
 .env.*
 Migrations/
 
+.nuget/
+Library/
+projects/
+
 .fake

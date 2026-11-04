@@ -11,7 +11,8 @@ public class OrganizationTenantService(
     IOrganizationRoleRepository roleRepository,
     IOrganizationProjectRepository projectRepository,
     IUserRepository userRepository,
-    OrganizationPermissionService permissionService)
+    OrganizationPermissionService permissionService,
+    IProjectScaffolder? projectScaffolder = null)
 {
     public async Task<Organization> RequireAccessAsync(
         Guid organizationId,
@@ -91,15 +92,33 @@ public class OrganizationTenantService(
             throw new InvalidOperationException("A project with this slug already exists in the organization.");
         }
 
-        return await projectRepository.AddIfBelowLimitAsync(new Project
+        var normalizedTemplateId = string.IsNullOrWhiteSpace(templateId) ? "nodejs-mvc" : templateId.Trim().ToLowerInvariant();
+        var normalizedRootPath = string.IsNullOrWhiteSpace(rootPath)
+            ? $"projects/{organization.Slug}/{normalizedSlug}"
+            : rootPath.Trim();
+
+        var createdProject = await projectRepository.AddIfBelowLimitAsync(new Project
         {
             OrganizationId = organizationId,
             Name = name.Trim(),
             Slug = normalizedSlug,
             Description = description?.Trim() ?? string.Empty,
-            RootPath = rootPath?.Trim() ?? string.Empty,
-            TemplateId = string.IsNullOrWhiteSpace(templateId) ? "default" : templateId.Trim()
+            RootPath = normalizedRootPath,
+            TemplateId = normalizedTemplateId
         }, plan.MaxProjects, cancellationToken);
+
+        if (projectScaffolder is not null)
+        {
+            await projectScaffolder.ScaffoldAsync(
+                createdProject.RootPath,
+                createdProject.TemplateId,
+                createdProject.Name,
+                organization.Slug,
+                createdProject.Slug,
+                cancellationToken);
+        }
+
+        return createdProject;
     }
 
     public async Task<bool> DeleteProjectAsync(
@@ -257,4 +276,11 @@ public class OrganizationTenantService(
 
     private static bool IsSlug(string slug) =>
         slug.All(character => char.IsAsciiLetterOrDigit(character) || character is '-' or '_');
+
+    private static string GetDefaultProjectsRoot()
+    {
+        var custom = Environment.GetEnvironmentVariable("CLOUDHUBS_PROJECTS_ROOT");
+        if (!string.IsNullOrWhiteSpace(custom)) return custom;
+        return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".cloudhubs", "projects");
+    }
 }

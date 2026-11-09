@@ -22,6 +22,8 @@ public class CloudHubsDbContext : DbContext
     public DbSet<AccountSubscription> AccountSubscriptions => Set<AccountSubscription>();
     public DbSet<SubscriptionPurchase> SubscriptionPurchases => Set<SubscriptionPurchase>();
     public DbSet<PlatformSettings> PlatformSettings => Set<PlatformSettings>();
+    public DbSet<OrganizationDoc> OrganizationDocs => Set<OrganizationDoc>();
+    public DbSet<OrganizationDocAccess> OrganizationDocAccesses => Set<OrganizationDocAccess>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

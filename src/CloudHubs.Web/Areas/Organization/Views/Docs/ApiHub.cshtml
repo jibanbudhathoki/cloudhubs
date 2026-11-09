@@ -1,0 +1,722 @@
+@model CloudHubs.Web.ViewModels.Docs.OrganizationDocsViewModel
+@{
+    Layout = null;
+    ViewData["Title"] = "Organization Portal API & Custom Dashboard - CloudHubs";
+    var currentOrganization = Model.CurrentOrganization!;
+    var isApiActive = Model.HasApiAccess || Model.IsProOrCustomPlan;
+    var hostUrl = $"{Context.Request.Scheme}://{Context.Request.Host}";
+    var orgApiBaseUrl = $"{hostUrl}/api/organizations/{Model.OrganizationId}";
+}
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Organization REST API &amp; Custom Dashboard - CloudHubs</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/portal.css" />
+    <style>
+        .api-feature-card {
+            background: #ffffff;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+        .cred-strip {
+            background: #f8fafc;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 18px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .cred-label {
+            font-size: 11px;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+        .endpoint-row {
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            background: #ffffff;
+            overflow: hidden;
+            transition: border-color 0.15s ease;
+        }
+        .endpoint-row:hover {
+            border-color: #cbd5e1;
+        }
+        .endpoint-header {
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            background: #fafafa;
+        }
+        .endpoint-method {
+            font-family: monospace;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 4px;
+            min-width: 60px;
+            text-align: center;
+            display: inline-block;
+        }
+        .method-get { background: #dbeafe; color: #1e40af; }
+        .method-post { background: #dcfce7; color: #15803d; }
+        .method-put { background: #fef3c7; color: #b45309; }
+        .method-del { background: #fee2e2; color: #b91c1c; }
+
+        .endpoint-path {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 13px;
+            font-weight: 600;
+            color: #0f172a;
+            margin-left: 10px;
+        }
+        .endpoint-body {
+            padding: 16px;
+            border-top: 1px solid #f1f5f9;
+            background: #ffffff;
+        }
+        .code-box {
+            background: #0f172a;
+            color: #e2e8f0;
+            padding: 14px;
+            border-radius: 6px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 12px;
+            line-height: 1.5;
+            overflow-x: auto;
+            margin-bottom: 12px;
+        }
+        .plan-badge {
+            font-size: 12px;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 6px;
+        }
+        .plan-badge-pro { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+        .plan-badge-custom { background: #ede9fe; color: #6d28d9; border: 1px solid #ddd6fe; }
+        .plan-badge-basic { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
+
+        .pricing-tier {
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+            height: 100%;
+            transition: all 0.2s ease;
+        }
+        .pricing-tier.featured {
+            border-color: #059669;
+            background: #f0fdf4;
+        }
+    </style>
+</head>
+<body>
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+    <div class="admin-shell">
+        <aside class="admin-sidebar organization-sidebar">
+            <a class="brand" href="/organization">
+                <span class="brand-mark">C</span>
+                <span><strong>CloudHubs</strong><small>ORGANIZATION</small></span>
+            </a>
+            <p class="role-label">CURRENT ORGANIZATION</p>
+            @if (Model.Organizations.Count > 1 || Model.CanShowOrganizationAction)
+            {
+                <details class="workspace-top-dropdown">
+                    <summary class="role-switch workspace-top-trigger" title="Click to switch workspace">
+                        <span class="tenant-mark">@currentOrganization.Name[..Math.Min(currentOrganization.Name.Length, 2)].ToUpperInvariant()</span>
+                        <span class="workspace-meta">
+                            <strong>@currentOrganization.Name</strong>
+                            <small>@currentOrganization.Role</small>
+                        </span>
+                        <span class="workspace-switch-badge">Switch ▾</span>
+                    </summary>
+                    <div class="workspace-top-menu">
+                        <div class="workspace-menu-label">CURRENT WORKSPACE</div>
+                        <div class="workspace-menu-item current">
+                            <span class="tenant-mark-sm">@currentOrganization.Name[..Math.Min(currentOrganization.Name.Length, 2)].ToUpperInvariant()</span>
+                            <span class="workspace-menu-name">@currentOrganization.Name</span>
+                            <span class="workspace-check">✓</span>
+                        </div>
+                        @if (Model.Organizations.Count > 1)
+                        {
+                            <div class="workspace-menu-divider"></div>
+                            <div class="workspace-menu-label">SWITCH WORKSPACE</div>
+                            @foreach (var org in Model.Organizations.Where(item => item.Id != currentOrganization.Id))
+                            {
+                                <form method="post" action="/organization/select" class="workspace-menu-form">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="organizationId" value="@org.Id" />
+                                    <button class="workspace-menu-item" type="submit">
+                                        <span class="tenant-mark-sm">@org.Name[..Math.Min(org.Name.Length, 2)].ToUpperInvariant()</span>
+                                        <span class="workspace-menu-name">@org.Name</span>
+                                    </button>
+                                </form>
+                            }
+                        }
+                        <div class="workspace-menu-divider"></div>
+                        @if (Model.CanShowOrganizationAction)
+                        {
+                            <a class="workspace-menu-item action-link" href="/organization/create">
+                                <span class="workspace-action-icon">+</span>
+                                <span>Add organization</span>
+                            </a>
+                        }
+                        <form method="post" action="/organization/workspaces" class="workspace-menu-form">
+                            @Html.AntiForgeryToken()
+                            <button class="workspace-menu-item action-link" type="submit">
+                                <span class="workspace-action-icon">⊞</span>
+                                <span>View all workspaces</span>
+                            </button>
+                        </form>
+                    </div>
+                </details>
+            }
+            else
+            {
+                <div class="role-switch">
+                    <span class="tenant-mark">@currentOrganization.Name[..Math.Min(currentOrganization.Name.Length, 2)].ToUpperInvariant()</span>
+                    <span><strong>@currentOrganization.Name</strong><small>@currentOrganization.Role</small></span>
+                </div>
+            }
+            <nav class="side-nav" aria-label="Workspace sections">
+                <a class="side-link" href="/organization">Overview</a>
+                <a class="side-link" href="/organization/projects">Projects</a>
+                <a class="side-link" href="/organization/merospace">MeroSpace</a>
+                <a class="side-link active" href="/organization/docs" aria-current="page">Docs &amp; API</a>
+                @if (Model.CanViewMembers)
+                {
+                    <a class="side-link" href="/organization/members">Members</a>
+                }
+                <a class="side-link" href="/organization/settings">Settings</a>
+            </nav>
+            <div class="sidebar-spacer"></div>
+            <div class="organization-sidebar-account">
+                <span class="avatar">@((Model.UserName.Length > 0 ? Model.UserName[..1] : "U").ToUpperInvariant())</span>
+                <span><strong>@Model.UserName</strong><small>@Model.UserEmail</small></span>
+            </div>
+        </aside>
+
+        <main class="admin-main" id="main-content" tabindex="-1">
+            <header class="topbar">
+                <div class="breadcrumbs">
+                    <a href="/organization">Workspace</a>
+                    <span>/</span>
+                    <a href="/organization">@currentOrganization.Name</a>
+                    <span>/</span>
+                    <a href="/organization/docs">Docs</a>
+                    <span>/</span>
+                    <strong>Organization REST API</strong>
+                </div>
+                <div class="heading-actions">
+                    <a class="btn btn-outline-secondary btn-sm" href="/organization/settings?tab=api">
+                        ⚙️ API &amp; Dashboard Settings
+                    </a>
+                    <a class="btn btn-outline-secondary btn-sm" href="/organization/docs">
+                        ← Project Docs
+                    </a>
+                    <a class="btn btn-primary btn-sm" href="/organization/merospace">Launch MeroSpace</a>
+                </div>
+            </header>
+
+            <div class="page-content organization-content">
+                @if (TempData["Success"] is string success)
+                {
+                    <div class="alert alert-success" role="status">@success</div>
+                }
+                @if (TempData["Error"] is string error)
+                {
+                    <div class="alert alert-danger" role="alert">@error</div>
+                }
+
+                <!-- Navigation Tabs: Project Docs vs Organization API -->
+                <ul class="nav nav-tabs mb-4">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/organization/docs">
+                            📁 Project &amp; Service Docs
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/organization/docs/api-hub" aria-current="page">
+                            ⚡ Organization REST API (Custom Dashboard)
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-secondary" href="/organization/settings?tab=api">
+                            ⚙️ Master Key &amp; API Settings
+                        </a>
+                    </li>
+                </ul>
+
+                @if (isApiActive)
+                {
+                    <!-- ACTIVE PRO / CUSTOM API ACCESS -->
+                    <div class="api-feature-card">
+                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                            <div>
+                                <h1 class="h4 fw-bold mb-1">⚡ Organization Portal REST API</h1>
+                                <p class="text-secondary small mb-0">Use your organization master API key to build your own custom dashboard for your hubs, manage projects, and sync team data.</p>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="plan-badge @(Model.SubscriptionPlanName.ToLowerInvariant().Contains("custom") ? "plan-badge-custom" : "plan-badge-pro")">
+                                    🟢 @Model.SubscriptionPlanName Plan &middot; API Active
+                                </span>
+                                <form method="post" action="/organization/docs/import-platform-api-to-docs" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-outline-primary btn-sm" title="Add this Platform API to Docs and choose which members can view it">
+                                        📖 Move to Docs
+                                    </button>
+                                </form>
+                                <a class="btn btn-success btn-sm" href="/organization/docs/download-org-postman">
+                                    📦 Download Postman (.json)
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- Credentials Strip -->
+                        <div class="cred-strip">
+                            <div>
+                                <div class="cred-label">ORGANIZATION BASE API URL</div>
+                                <div class="input-group input-group-sm">
+                                    <input type="text" class="form-control font-monospace" id="org-base-api" value="@orgApiBaseUrl" readonly />
+                                    <button class="btn btn-outline-secondary" type="button" onclick="copyValue('org-base-api', this)">Copy</button>
+                                </div>
+                                <small class="text-muted" style="font-size: 11px;">All endpoints are prefixed with this base path.</small>
+                            </div>
+                            <div>
+                                <div class="cred-label d-flex align-items-center justify-content-between">
+                                    <span>MASTER ORGANIZATION API KEY</span>
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size: 10px;">Live Key</span>
+                                </div>
+                                <div class="input-group input-group-sm">
+                                    <input type="password" class="form-control font-monospace" id="org-master-key" value="@Model.OrganizationApiKey" readonly />
+                                    <button class="btn btn-outline-secondary" type="button" onclick="toggleKeyVisibility('org-master-key', this)">👁</button>
+                                    <button class="btn btn-outline-secondary" type="button" onclick="copyPassword('org-master-key', this)">Copy</button>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mt-1">
+                                    <small class="text-muted" style="font-size: 11px;">Keep secret. Used in <code>X-Api-Key</code> or <code>Bearer</code> header.</small>
+                                    <form method="post" action="/organization/docs/regenerate-org-api-key" onsubmit="return confirm('Regenerating this key will invalidate all existing dashboard connections using the current key. Are you sure?');" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-link p-0 text-danger small text-decoration-none" style="font-size: 11px;">🔄 Regenerate Key</button>
+                                    </form>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="cred-label">AUTHENTICATION HEADERS</div>
+                                <div class="p-2 border rounded bg-white font-monospace small" style="font-size: 11.5px;">
+                                    <div><code>X-Api-Key: @Model.OrganizationApiKey</code></div>
+                                    <div class="text-muted mt-1">or <code>Authorization: Bearer @Model.OrganizationApiKey</code></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tabs: Endpoints Reference & Dashboard Starter Code -->
+                        <ul class="nav nav-tabs mb-3" id="apiTabs" role="tablist">
+                            <li class="nav-item">
+                                <button class="nav-link active fw-bold" id="tab-endpoints" data-bs-toggle="tab" data-bs-target="#pane-endpoints" type="button">
+                                    📖 REST API Reference (11 Endpoints)
+                                </button>
+                            </li>
+                            <li class="nav-item">
+                                <button class="nav-link fw-bold" id="tab-code" data-bs-toggle="tab" data-bs-target="#pane-code" type="button">
+                                    💻 Custom Dashboard Starter Code (React &amp; cURL)
+                                </button>
+                            </li>
+                        </ul>
+
+                        <div class="tab-content" id="apiTabsContent">
+                            <!-- TAB 1: Endpoints Reference -->
+                            <div class="tab-pane fade show active" id="pane-endpoints">
+                                <p class="text-secondary small mb-3">Below are the available endpoints your custom dashboard can use to interact with CloudHubs:</p>
+
+                                <!-- 1. Overview -->
+                                <details class="endpoint-row" open>
+                                    <summary class="endpoint-header">
+                                        <div>
+                                            <span class="endpoint-method method-get">GET</span>
+                                            <span class="endpoint-path">/api/organizations/@Model.OrganizationId/overview</span>
+                                        </div>
+                                        <span class="text-secondary small">Dashboard Stats &amp; Plan Info</span>
+                                    </summary>
+                                    <div class="endpoint-body">
+                                        <p class="small text-muted mb-2">Retrieves organization dashboard statistics, active plan limits, projects count, and members count.</p>
+                                        <div class="code-box">curl -X GET "@orgApiBaseUrl/overview" \
+  -H "X-Api-Key: @Model.OrganizationApiKey" \
+  -H "Accept: application/json"</div>
+                                        <strong class="small text-muted d-block mb-1">Example Response (200 OK):</strong>
+                                        <pre class="code-box">{
+  "organizationId": "@Model.OrganizationId",
+  "name": "@Model.OrganizationName",
+  "slug": "@Model.OrganizationSlug",
+  "status": "Active",
+  "plan": {
+    "name": "@Model.SubscriptionPlanName",
+    "hasApiAccess": true,
+    "maxProjects": 25,
+    "maxMembers": 50,
+    "storageLimitGb": 100
+  },
+  "metrics": {
+    "projectsCount": @Model.Projects.Count,
+    "membersCount": 2,
+    "docsCount": @Model.Docs.Count
+  }
+}</pre>
+                                    </div>
+                                </details>
+
+                                <!-- 2. Projects List -->
+                                <details class="endpoint-row">
+                                    <summary class="endpoint-header">
+                                        <div>
+                                            <span class="endpoint-method method-get">GET</span>
+                                            <span class="endpoint-path">/api/organizations/@Model.OrganizationId/projects</span>
+                                        </div>
+                                        <span class="text-secondary small">List All Projects</span>
+                                    </summary>
+                                    <div class="endpoint-body">
+                                        <p class="small text-muted mb-2">Returns all code projects and cloud hubs for this organization.</p>
+                                        <div class="code-box">curl -X GET "@orgApiBaseUrl/projects" \
+  -H "X-Api-Key: @Model.OrganizationApiKey"</div>
+                                    </div>
+                                </details>
+
+                                <!-- 3. Create Project -->
+                                <details class="endpoint-row">
+                                    <summary class="endpoint-header">
+                                        <div>
+                                            <span class="endpoint-method method-post">POST</span>
+                                            <span class="endpoint-path">/api/organizations/@Model.OrganizationId/projects</span>
+                                        </div>
+                                        <span class="text-secondary small">Create Project Workspace</span>
+                                    </summary>
+                                    <div class="endpoint-body">
+                                        <p class="small text-muted mb-2">Provision a new project workspace from your custom dashboard.</p>
+                                        <div class="code-box">curl -X POST "@orgApiBaseUrl/projects" \
+  -H "X-Api-Key: @Model.OrganizationApiKey" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Payments Service",
+    "slug": "payments-service",
+    "description": "Backend API for mobile transactions",
+    "templateId": "starter-node"
+  }'</div>
+                                    </div>
+                                </details>
+
+                                <!-- 4. Update Project -->
+                                <details class="endpoint-row">
+                                    <summary class="endpoint-header">
+                                        <div>
+                                            <span class="endpoint-method method-put">PUT</span>
+                                            <span class="endpoint-path">/api/organizations/@Model.OrganizationId/projects/{projectId}</span>
+                                        </div>
+                                        <span class="text-secondary small">Update Project</span>
+                                    </summary>
+                                    <div class="endpoint-body">
+                                        <p class="small text-muted mb-2">Update name, slug, description, or root path for an existing project.</p>
+                                    </div>
+                                </details>
+
+                                <!-- 5. Delete Project -->
+                                <details class="endpoint-row">
+                                    <summary class="endpoint-header">
+                                        <div>
+                                            <span class="endpoint-method method-del">DELETE</span>
+                                            <span class="endpoint-path">/api/organizations/@Model.OrganizationId/projects/{projectId}</span>
+                                        </div>
+                                        <span class="text-secondary small">Delete Project</span>
+                                    </summary>
+                                    <div class="endpoint-body">
+                                        <p class="small text-muted mb-2">Permanently deletes a project workspace.</p>
+                                    </div>
+                                </details>
+
+                                <!-- 6. Members List -->
+                                <details class="endpoint-row">
+                                    <summary class="endpoint-header">
+                                        <div>
+                                            <span class="endpoint-method method-get">GET</span>
+                                            <span class="endpoint-path">/api/organizations/@Model.OrganizationId/members</span>
+                                        </div>
+                                        <span class="text-secondary small">List Team Members</span>
+                                    </summary>
+                                    <div class="endpoint-body">
+                                        <p class="small text-muted mb-2">Returns all users in the organization with their roles (Owner, Admin, Member, Viewer).</p>
+                                        <div class="code-box">curl -X GET "@orgApiBaseUrl/members" \
+  -H "X-Api-Key: @Model.OrganizationApiKey"</div>
+                                    </div>
+                                </details>
+
+                                <!-- 7. Invite Member -->
+                                <details class="endpoint-row">
+                                    <summary class="endpoint-header">
+                                        <div>
+                                            <span class="endpoint-method method-post">POST</span>
+                                            <span class="endpoint-path">/api/organizations/@Model.OrganizationId/members</span>
+                                        </div>
+                                        <span class="text-secondary small">Add / Invite Member</span>
+                                    </summary>
+                                    <div class="endpoint-body">
+                                        <div class="code-box">curl -X POST "@orgApiBaseUrl/members" \
+  -H "X-Api-Key: @Model.OrganizationApiKey" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "developer@company.com",
+    "role": "Member"
+  }'</div>
+                                    </div>
+                                </details>
+
+                                <!-- 8. Documentation Catalog -->
+                                <details class="endpoint-row">
+                                    <summary class="endpoint-header">
+                                        <div>
+                                            <span class="endpoint-method method-get">GET</span>
+                                            <span class="endpoint-path">/api/organizations/@Model.OrganizationId/docs</span>
+                                        </div>
+                                        <span class="text-secondary small">List Documentation Profiles</span>
+                                    </summary>
+                                    <div class="endpoint-body">
+                                        <p class="small text-muted mb-2">Returns all documentation profiles, base URLs, and integration keys for this organization.</p>
+                                    </div>
+                                </details>
+
+                                <!-- 9. Project Resources -->
+                                <details class="endpoint-row">
+                                    <summary class="endpoint-header">
+                                        <div>
+                                            <span class="endpoint-method method-get">GET</span>
+                                            <span class="endpoint-path">/api/organizations/@Model.OrganizationId/resources</span>
+                                        </div>
+                                        <span class="text-secondary small">Project Resources &amp; Servers</span>
+                                    </summary>
+                                    <div class="endpoint-body">
+                                        <p class="small text-muted mb-2">Returns server ports, environments, and resource configurations.</p>
+                                    </div>
+                                </details>
+                            </div>
+
+                            <!-- TAB 2: Custom Dashboard Starter Code -->
+                            <div class="tab-pane fade" id="pane-code">
+                                <h5 class="fw-bold mb-2">React / Next.js Dashboard Starter Hook</h5>
+                                <p class="text-secondary small mb-3">Copy and paste this hook into your custom dashboard to fetch your hubs, metrics, and projects in real time:</p>
+                                <pre class="code-box">// useCloudHubs.ts
+import { useState, useEffect } from 'react';
+
+const ORG_BASE_URL = '@orgApiBaseUrl';
+const API_KEY = '@Model.OrganizationApiKey';
+
+export function useCloudHubs() {
+  const [data, setData] = useState({ overview: null, projects: [], loading: true });
+
+  useEffect(() => {
+    async function loadDashboard() {
+      try {
+        const headers = { 'X-Api-Key': API_KEY, 'Accept': 'application/json' };
+        const [overviewRes, projectsRes] = await Promise.all([
+          fetch(`${ORG_BASE_URL}/overview`, { headers }),
+          fetch(`${ORG_BASE_URL}/projects`, { headers })
+        ]);
+        const overview = await overviewRes.json();
+        const projects = await projectsRes.json();
+        setData({ overview, projects, loading: false });
+      } catch (err) {
+        console.error('Failed to load CloudHubs dashboard data', err);
+        setData(prev => ({ ...prev, loading: false }));
+      }
+    }
+    loadDashboard();
+  }, []);
+
+  return data;
+}</pre>
+
+                                <h5 class="fw-bold mt-4 mb-2">Python Script Integration</h5>
+                                <pre class="code-box">import requests
+
+BASE_URL = "@orgApiBaseUrl"
+HEADERS = {"X-Api-Key": "@Model.OrganizationApiKey", "Accept": "application/json"}
+
+# 1. Fetch Overview
+overview = requests.get(f"{BASE_URL}/overview", headers=HEADERS).json()
+print("Organization Metrics:", overview["metrics"])
+
+# 2. List Projects
+projects = requests.get(f"{BASE_URL}/projects", headers=HEADERS).json()
+for p in projects:
+    print(f"Project: {p['name']} ({p['slug']})")</pre>
+                            </div>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <!-- LOCKED API ACCESS: REQUIRES PRO OR CUSTOM PLAN -->
+                    <div class="api-feature-card">
+                        <div class="text-center py-4 mb-4">
+                            <span style="font-size: 48px;">🔒</span>
+                            <h1 class="h3 fw-bold mt-2 mb-1">Organization REST API Access</h1>
+                            <p class="text-secondary" style="max-width: 600px; margin: 0 auto;">
+                                Organization REST API access is available exclusively for workspaces subscribed to the <strong>Pro</strong> or <strong>Custom</strong> plan.
+                            </p>
+                            <span class="plan-badge plan-badge-basic mt-2 d-inline-block">
+                                Current Workspace Plan: @Model.SubscriptionPlanName (No API Access)
+                            </span>
+                        </div>
+
+                        <!-- Feature Comparison Grid -->
+                        <div class="row g-4 mb-5">
+                            <div class="col-md-4">
+                                <div class="pricing-tier">
+                                    <span class="badge bg-secondary mb-2">Current</span>
+                                    <h3 class="h5 fw-bold">Basic Plan</h3>
+                                    <p class="text-muted small">Standard web portal workspace access.</p>
+                                    <ul class="list-unstyled small text-secondary">
+                                        <li class="mb-2">✓ CloudHubs Web Portal</li>
+                                        <li class="mb-2">✓ MeroSpace Web IDE</li>
+                                        <li class="mb-2 text-muted">✕ Master Organization REST API</li>
+                                        <li class="mb-2 text-muted">✕ Custom Dashboard Integration</li>
+                                        <li class="mb-2 text-muted">✕ Headless Automation Webhooks</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="pricing-tier featured">
+                                    <span class="badge bg-success mb-2">Recommended</span>
+                                    <h3 class="h5 fw-bold">Pro Plan</h3>
+                                    <div class="h4 fw-bold text-success mb-1">$49 <small class="text-muted fw-normal" style="font-size: 13px;">/month</small></div>
+                                    <p class="text-muted small">Complete programmatic access for custom internal dashboards and teams.</p>
+                                    <ul class="list-unstyled small text-secondary">
+                                        <li class="mb-2">✓ <strong>Full Organization REST API Access</strong></li>
+                                        <li class="mb-2">✓ <strong>Master Organization API Key</strong></li>
+                                        <li class="mb-2">✓ <strong>Custom Dashboard Integration</strong></li>
+                                        <li class="mb-2">✓ Up to 25 Projects &amp; 50 Members</li>
+                                        <li class="mb-2">✓ Downloadable Postman API Collections</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="pricing-tier">
+                                    <span class="badge bg-purple text-dark mb-2" style="background: #ede9fe;">Enterprise</span>
+                                    <h3 class="h5 fw-bold">Custom Plan</h3>
+                                    <div class="h4 fw-bold text-dark mb-1">Custom <small class="text-muted fw-normal" style="font-size: 13px;">/tailored</small></div>
+                                    <p class="text-muted small">High-volume architecture, unlimited hubs, and dedicated infrastructure.</p>
+                                    <ul class="list-unstyled small text-secondary">
+                                        <li class="mb-2">✓ Everything in Pro Plan</li>
+                                        <li class="mb-2">✓ Unlimited Projects &amp; Members</li>
+                                        <li class="mb-2">✓ Custom Domain &amp; White-labeling</li>
+                                        <li class="mb-2">✓ Dedicated Support &amp; SLA</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Ask for API Access Request Form -->
+                        <div class="border rounded p-4 bg-light mb-4">
+                            <h2 class="h5 fw-bold mb-2">📩 Request Organization API Access</h2>
+                            <p class="text-secondary small mb-3">Submit your request below to enable the Organization REST API for your custom dashboard:</p>
+
+                            @if (Model.HasPendingApiRequest)
+                            {
+                                <div class="alert alert-info d-flex align-items-center gap-2 mb-0" role="status">
+                                    <span>⏳</span>
+                                    <div><strong>Request Pending:</strong> Your request for Organization API access has been received and is currently being reviewed by the platform administrator.</div>
+                                </div>
+                            }
+                            else
+                            {
+                                <form method="post" action="/organization/docs/request-api-access">
+                                    @Html.AntiForgeryToken()
+                                    <div class="row g-3">
+                                        <div class="col-md-4">
+                                            <label class="form-label fw-bold small">Preferred Plan</label>
+                                            <select class="form-select" name="planName">
+                                                <option value="Pro" selected>Pro Plan ($49/month)</option>
+                                                <option value="Custom">Custom / Enterprise Plan</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-8">
+                                            <label class="form-label fw-bold small">Contact Email</label>
+                                            <input type="email" class="form-control" name="contactEmail" value="@Model.UserEmail" required />
+                                        </div>
+                                        <div class="col-12">
+                                            <label class="form-label fw-bold small">Intended Use Case / Dashboard Details</label>
+                                            <textarea class="form-control" name="useCase" rows="3" placeholder="Tell us about the custom dashboard or integration you are building (e.g. internal developer hub, project monitoring, team management)..."></textarea>
+                                        </div>
+                                        <div class="col-12">
+                                            <button type="submit" class="btn btn-primary px-4 fw-bold">
+                                                Submit API Access Request &rarr;
+                                            </button>
+                                        </div>
+                                    </div>
+                                </form>
+                            }
+                        </div>
+
+                        <!-- Instant Activation for Development / Demo -->
+                        <div class="border border-success-subtle bg-success-subtle rounded p-3 d-flex align-items-center justify-content-between flex-wrap gap-3">
+                            <div>
+                                <strong class="text-success d-block">⚡ Developer / Instant Trial Activation</strong>
+                                <span class="text-secondary small">Want to test the Organization REST API right now in this environment? Activate the Pro plan instantly with one click.</span>
+                            </div>
+                            <form method="post" action="/organization/docs/activate-pro-plan">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-success fw-bold">
+                                    🚀 Activate Pro Plan Now
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                }
+            </div>
+        </main>
+    </div>
+
+    <script src="~/lib/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/portal.js"></script>
+    <script>
+        function copyValue(id, btn) {
+            var el = document.getElementById(id);
+            if (el && el.value) {
+                navigator.clipboard.writeText(el.value).then(function() {
+                    var orig = btn.innerText; btn.innerText = '✓'; setTimeout(() => btn.innerText = orig, 1200);
+                });
+            }
+        }
+
+        function copyPassword(id, btn) {
+            var el = document.getElementById(id);
+            if (el && el.value) {
+                navigator.clipboard.writeText(el.value).then(function() {
+                    var orig = btn.innerText; btn.innerText = '✓'; setTimeout(() => btn.innerText = orig, 1200);
+                });
+            }
+        }
+
+        function toggleKeyVisibility(id, btn) {
+            var el = document.getElementById(id);
+            if (el) {
+                if (el.type === 'password') {
+                    el.type = 'text';
+                    btn.innerText = '🙈';
+                } else {
+                    el.type = 'password';
+                    btn.innerText = '👁';
+                }
+            }
+        }
+    </script>
+</body>
+</html>
+

@@ -14,6 +14,8 @@ internal sealed class OrganizationRepositoryStub : IOrganizationRepository
     public Task<IReadOnlyCollection<OrganizationSummaryDto>> GetAllAsync(CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyCollection<OrganizationSummaryDto>>([]);
     public Task<Organization?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
         Task.FromResult(ExistingOrganization?.Id == id ? ExistingOrganization : null);
+    public Task<Organization?> GetByApiKeyAsync(string apiKey, CancellationToken cancellationToken = default) =>
+        Task.FromResult(ExistingOrganization?.ApiKey == apiKey ? ExistingOrganization : null);
     public Task<bool> SlugExistsAsync(string slug, Guid? exceptId = null, CancellationToken cancellationToken = default) => Task.FromResult(false);
     public Task<bool> HasProjectsAsync(Guid id, CancellationToken cancellationToken = default) => Task.FromResult(ProjectsExist);
     public Task<Organization> AddAsync(Organization organization, CancellationToken cancellationToken = default)

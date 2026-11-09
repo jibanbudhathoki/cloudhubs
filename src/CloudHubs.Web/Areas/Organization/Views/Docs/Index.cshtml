@@ -1,0 +1,431 @@
+@model CloudHubs.Web.ViewModels.Docs.OrganizationDocsViewModel
+@{
+    Layout = null;
+    ViewData["Title"] = "Docs & API - CloudHubs";
+    var currentOrganization = Model.CurrentOrganization!;
+}
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Docs &amp; API - CloudHubs</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/portal.css" />
+    <style>
+        .doc-badge-pill {
+            font-size: 11px;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 4px;
+            background: #eaf0eb;
+            color: #3b5a45;
+            display: inline-block;
+        }
+        .doc-badge-api { background: #e0f2fe; color: #0369a1; }
+        .doc-badge-project { background: #dcfce7; color: #15803d; }
+        .doc-badge-mobile { background: #f3e8ff; color: #7e22ce; }
+
+        .auth-pill {
+            font-size: 11.5px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 4px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .auth-pill-key { background: #fef3c7; color: #92400e; }
+        .auth-pill-none { background: #f1f5f9; color: #475569; }
+    </style>
+</head>
+<body>
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+    <div class="admin-shell">
+        <aside class="admin-sidebar organization-sidebar">
+            <a class="brand" href="/organization">
+                <span class="brand-mark">C</span>
+                <span><strong>CloudHubs</strong><small>ORGANIZATION</small></span>
+            </a>
+            <p class="role-label">CURRENT ORGANIZATION</p>
+            @if (Model.Organizations.Count > 1 || Model.CanShowOrganizationAction)
+            {
+                <details class="workspace-top-dropdown">
+                    <summary class="role-switch workspace-top-trigger" title="Click to switch workspace">
+                        <span class="tenant-mark">@currentOrganization.Name[..Math.Min(currentOrganization.Name.Length, 2)].ToUpperInvariant()</span>
+                        <span class="workspace-meta">
+                            <strong>@currentOrganization.Name</strong>
+                            <small>@currentOrganization.Role</small>
+                        </span>
+                        <span class="workspace-switch-badge">Switch ▾</span>
+                    </summary>
+                    <div class="workspace-top-menu">
+                        <div class="workspace-menu-label">CURRENT WORKSPACE</div>
+                        <div class="workspace-menu-item current">
+                            <span class="tenant-mark-sm">@currentOrganization.Name[..Math.Min(currentOrganization.Name.Length, 2)].ToUpperInvariant()</span>
+                            <span class="workspace-menu-name">@currentOrganization.Name</span>
+                            <span class="workspace-check">✓</span>
+                        </div>
+                        @if (Model.Organizations.Count > 1)
+                        {
+                            <div class="workspace-menu-divider"></div>
+                            <div class="workspace-menu-label">SWITCH WORKSPACE</div>
+                            @foreach (var org in Model.Organizations.Where(item => item.Id != currentOrganization.Id))
+                            {
+                                <form method="post" action="/organization/select" class="workspace-menu-form">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="organizationId" value="@org.Id" />
+                                    <button class="workspace-menu-item" type="submit">
+                                        <span class="tenant-mark-sm">@org.Name[..Math.Min(org.Name.Length, 2)].ToUpperInvariant()</span>
+                                        <span class="workspace-menu-name">@org.Name</span>
+                                    </button>
+                                </form>
+                            }
+                        }
+                        <div class="workspace-menu-divider"></div>
+                        @if (Model.CanShowOrganizationAction)
+                        {
+                            <a class="workspace-menu-item action-link" href="/organization/create">
+                                <span class="workspace-action-icon">+</span>
+                                <span>Add organization</span>
+                            </a>
+                        }
+                        <form method="post" action="/organization/workspaces" class="workspace-menu-form">
+                            @Html.AntiForgeryToken()
+                            <button class="workspace-menu-item action-link" type="submit">
+                                <span class="workspace-action-icon">⊞</span>
+                                <span>View all workspaces</span>
+                            </button>
+                        </form>
+                    </div>
+                </details>
+            }
+            else
+            {
+                <div class="role-switch">
+                    <span class="tenant-mark">@currentOrganization.Name[..Math.Min(currentOrganization.Name.Length, 2)].ToUpperInvariant()</span>
+                    <span><strong>@currentOrganization.Name</strong><small>@currentOrganization.Role</small></span>
+                </div>
+            }
+            <nav class="side-nav" aria-label="Workspace sections">
+                <a class="side-link" href="/organization">Overview</a>
+                <a class="side-link" href="/organization/projects">Projects</a>
+                <a class="side-link" href="/organization/merospace">MeroSpace</a>
+                <a class="side-link active" href="/organization/docs" aria-current="page">Docs</a>
+                @if (Model.CanViewMembers)
+                {
+                    <a class="side-link" href="/organization/members">Members</a>
+                }
+                <a class="side-link" href="/organization/settings">Settings</a>
+            </nav>
+            <div class="sidebar-spacer"></div>
+            <div class="organization-sidebar-account">
+                <span class="avatar">@((Model.UserName.Length > 0 ? Model.UserName[..1] : "U").ToUpperInvariant())</span>
+                <span><strong>@Model.UserName</strong><small>@Model.UserEmail</small></span>
+            </div>
+        </aside>
+
+        <main class="admin-main" id="main-content" tabindex="-1">
+            <header class="topbar">
+                <div class="breadcrumbs">
+                    <a href="/organization">Workspace</a>
+                    <span>/</span>
+                    <a href="/organization">@currentOrganization.Name</a>
+                    <span>/</span>
+                    <strong>Docs</strong>
+                </div>
+                <div class="heading-actions">
+                    <span class="count organization-usage">
+                        Docs @Model.Docs.Count
+                    </span>
+                    @if (Model.CanManageDocs)
+                    {
+                        <a class="btn btn-success btn-sm" href="/organization/docs/create">+ Create doc</a>
+                    }
+                    <a class="btn btn-primary btn-sm" href="/organization/merospace">Launch MeroSpace</a>
+                    <form method="post" action="/organization/logout" class="sign-out-form">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-outline-secondary btn-sm">Sign out</button>
+                    </form>
+                </div>
+            </header>
+
+            <div class="page-content organization-content">
+                @if (TempData["Success"] is string success)
+                {
+                    <div class="alert alert-success" role="status">@success</div>
+                }
+                @if (TempData["Error"] is string error)
+                {
+                    <div class="alert alert-danger" role="alert">@error</div>
+                }
+
+                <!-- Navigation Tabs: Project Docs vs Organization API -->
+                <ul class="nav nav-tabs mb-4">
+                    <li class="nav-item">
+                        <a class="nav-link active fw-bold" href="/organization/docs" aria-current="page">
+                            📁 Project &amp; Service Docs
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link fw-bold text-dark" href="/organization/docs/api-hub">
+                            ⚡ Organization REST API (Build Custom Dashboard)
+                            @if (Model.HasApiAccess || Model.IsProOrCustomPlan)
+                            {
+                                <span class="badge bg-success-subtle text-success border border-success-subtle ms-1" style="font-size: 10px;">Pro API</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary-subtle text-secondary border ms-1" style="font-size: 10px;">Pro / Custom</span>
+                            }
+                        </a>
+                    </li>
+                </ul>
+
+                <!-- Page Heading (Matching Projects.cshtml) -->
+                <section class="page-heading">
+                    <div>
+                        <p class="eyebrow">API &amp; DEVELOPER DOCUMENTATION &middot; @currentOrganization.Name.ToUpperInvariant()</p>
+                        <h1>Docs</h1>
+                        <p>API endpoints, Postman collections, environment variables, and developer integration guides.</p>
+                    </div>
+                    @if (Model.CanManageDocs)
+                    {
+                        <a class="btn btn-success" href="/organization/docs/create">+ Create new doc</a>
+                    }
+                </section>
+
+                <!-- Organization Dashboard API Callout Banner -->
+                <div class="alert @(Model.HasApiAccess || Model.IsProOrCustomPlan ? "alert-success" : "alert-light") border d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4 p-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <span style="font-size: 20px;">⚡</span>
+                        <div>
+                            @if (Model.HasApiAccess || Model.IsProOrCustomPlan)
+                            {
+                                <strong>Organization REST API Active:</strong>
+                                <span class="text-secondary small">Your workspace has active API credentials to build custom dashboards, manage projects, and fetch metrics.</span>
+                            }
+                            else
+                            {
+                                <strong>Build Your Own Custom Dashboard:</strong>
+                                <span class="text-secondary small">Looking to integrate CloudHubs with your internal portal? Subscribed Pro and Custom plans include full Organization REST APIs.</span>
+                            }
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <a class="btn btn-sm btn-outline-secondary" href="/organization/settings?tab=api" title="Manage Master API Key & Dashboard Settings">
+                            ⚙️ API Settings
+                        </a>
+                        <a class="btn btn-sm @(Model.HasApiAccess || Model.IsProOrCustomPlan ? "btn-success" : "btn-outline-primary")" href="/organization/docs/api-hub">
+                            @(Model.HasApiAccess || Model.IsProOrCustomPlan ? "⚡ View Organization API Hub &rarr;" : "Ask for API Access / Learn More &rarr;")
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Section: All Documentation Table (Matching Projects.cshtml) -->
+                <section class="surface organization-section" id="docs-list">
+                    <div class="surface-heading">
+                        <div>
+                            <h2>All Documentation</h2>
+                            <p>Select a documentation profile to view endpoints, copy variables, or download developer bundles.</p>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <input class="form-control form-control-sm" id="search-docs" placeholder="Filter documentation by name or category..." style="width: 270px;" />
+                            <span class="count" id="docs-count">@Model.Docs.Count</span>
+                        </div>
+                    </div>
+
+                    @if (Model.CanManageDocs)
+                    {
+                        <details class="organization-inline-form">
+                            <summary class="btn btn-outline-secondary btn-sm">Quick add doc</summary>
+                            <form method="post" action="/organization/docs/create" class="organization-form-grid">
+                                @Html.AntiForgeryToken()
+                                <div>
+                                    <label class="form-label" for="quick-doc-title">Title *</label>
+                                    <input class="form-control" id="quick-doc-title" name="Title" maxlength="200" placeholder="e.g. Payments API, Auth Service" required />
+                                </div>
+                                <div>
+                                    <label class="form-label" for="quick-doc-slug">Slug (optional)</label>
+                                    <input class="form-control" id="quick-doc-slug" name="Slug" maxlength="120" placeholder="payments-api" />
+                                </div>
+                                <div>
+                                    <label class="form-label" for="quick-doc-category">Category</label>
+                                    <input class="form-control" id="quick-doc-category" name="Category" value="API" placeholder="API, Mobile, Integration" />
+                                </div>
+                                <div>
+                                    <label class="form-label" for="quick-doc-project">Linked project</label>
+                                    <select class="form-select" id="quick-doc-project" name="ProjectId">
+                                        <option value="">(Standalone API)</option>
+                                        @foreach (var p in Model.Projects)
+                                        {
+                                            <option value="@p.Id">@p.Name</option>
+                                        }
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="form-label" for="quick-doc-baseurl">Base URL</label>
+                                    <input class="form-control font-monospace" id="quick-doc-baseurl" name="BaseUrl" placeholder="https://api.yourdomain.com/v1" />
+                                </div>
+                                <div>
+                                    <label class="form-label" for="quick-doc-apikey">Live API Key (Optional)</label>
+                                    <input class="form-control font-monospace" id="quick-doc-apikey" name="ApiKey" placeholder="ch_live_... (optional)" />
+                                </div>
+                                <div>
+                                    <label class="form-label" for="quick-doc-testapikey">Test / Demo API Key (Optional)</label>
+                                    <input class="form-control font-monospace" id="quick-doc-testapikey" name="TestApiKey" placeholder="ch_test_... (optional)" />
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label" for="quick-doc-description">Description</label>
+                                    <input class="form-control" id="quick-doc-description" name="Description" maxlength="2000" placeholder="Brief summary of this API..." />
+                                </div>
+                                <div class="organization-form-actions d-flex justify-content-between align-items-center">
+                                    <a class="text-link" href="/organization/docs/create">Open full rich editor with Markdown &amp; file uploads &rarr;</a>
+                                    <button class="btn btn-success btn-sm" type="submit">Save documentation</button>
+                                </div>
+                            </form>
+                        </details>
+                    }
+
+                    @if (Model.Docs.Count == 0)
+                    {
+                        <div class="empty-state">
+                            <strong>No documentation entries yet</strong>
+                            <span>Add your first documentation entry with endpoints, Postman collections, and environment variables.</span>
+                            @if (Model.CanManageDocs)
+                            {
+                                <a class="btn btn-success btn-sm mt-3" href="/organization/docs/create">Create your first doc</a>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table align-middle mb-0" id="docs-table">
+                                <thead>
+                                    <tr>
+                                        <th>Documentation</th>
+                                        <th>Category</th>
+                                        <th>Base URL</th>
+                                        <th>Authentication</th>
+                                        <th>Description</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                @foreach (var doc in Model.Docs)
+                                {
+                                    var docHasLiveKey = !string.IsNullOrWhiteSpace(doc.ApiKey);
+                                    var docHasTestKey = !string.IsNullOrWhiteSpace(doc.TestApiKey);
+                                    var categoryClass = doc.Category.ToLowerInvariant() switch {
+                                        "api" => "doc-badge-api",
+                                        "project api" => "doc-badge-project",
+                                        "mobile" => "doc-badge-mobile",
+                                        _ => "doc-badge-pill"
+                                    };
+                                    <tr class="doc-row" data-name="@doc.Title.ToLowerInvariant()" data-cat="@doc.Category.ToLowerInvariant()">
+                                        <td>
+                                            <div class="org-cell">
+                                                <span class="org-monogram">
+                                                    @(doc.Category.Length >= 2 ? doc.Category[..2].ToUpperInvariant() : "DC")
+                                                </span>
+                                                <span>
+                                                    <strong>@doc.Title</strong>
+                                                    <small class="d-flex align-items-center gap-1">
+                                                        <span>@doc.Slug</span>
+                                                        @if (!doc.IsPublicToMembers)
+                                                        {
+                                                            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle py-0 px-1" style="font-size: 10px;" title="Restricted to specific members">🔒 Restricted (@doc.AllowedMembers.Count)</span>
+                                                        }
+                                                    </small>
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="doc-badge-pill @categoryClass">@doc.Category</span>
+                                        </td>
+                                        <td>
+                                            @if (!string.IsNullOrWhiteSpace(doc.BaseUrl))
+                                            {
+                                                <code class="small text-muted">@doc.BaseUrl</code>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted small">—</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            @if (docHasLiveKey && docHasTestKey)
+                                            {
+                                                <span class="auth-pill auth-pill-key" title="Live & Test API Keys configured">🔑 Live &amp; 🧪 Test</span>
+                                            }
+                                            else if (docHasLiveKey)
+                                            {
+                                                <span class="auth-pill auth-pill-key" title="Live API Key configured">🔑 Live Key</span>
+                                            }
+                                            else if (docHasTestKey)
+                                            {
+                                                <span class="auth-pill" style="background: #fef3c7; color: #92400e;" title="Test / Demo API Key configured">🧪 Test Key</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="auth-pill auth-pill-none">🔓 None / Open</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <span class="small text-secondary">@(string.IsNullOrWhiteSpace(doc.Description) ? "—" : doc.Description)</span>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center gap-2">
+                                                <a class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1" href="/organization/docs/@doc.Id" title="View Documentation">
+                                                    <span>📖</span> View Docs
+                                                </a>
+                                                <a class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-1" href="/organization/docs/@doc.Id/download-bundle" title="Download Developer Kit ZIP">
+                                                    <span>📦</span> Kit (.zip)
+                                                </a>
+                                                <a class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-1" href="/organization/docs/@doc.Id/download-docs" title="Download Markdown .md">
+                                                    <span>⬇</span> .md
+                                                </a>
+                                                @if (Model.CanManageDocs)
+                                                {
+                                                    <a class="btn btn-outline-primary btn-sm" href="/organization/docs/@doc.Id/edit" title="Edit Documentation">
+                                                        ✏️ Edit
+                                                    </a>
+                                                    <form method="post" action="/organization/docs/@doc.Id/delete" onsubmit="return confirm('Delete this documentation profile?');" class="d-inline">
+                                                        @Html.AntiForgeryToken()
+                                                        <button type="submit" class="btn btn-outline-danger btn-sm">Delete</button>
+                                                    </form>
+                                                }
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <script src="~/lib/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/portal.js"></script>
+    <script>
+        // Search & filter table rows
+        document.getElementById('search-docs')?.addEventListener('input', function() {
+            var q = this.value.toLowerCase().trim();
+            var visible = 0;
+            document.querySelectorAll('#docs-table .doc-row').forEach(function(row) {
+                var name = row.getAttribute('data-name') || '';
+                var cat = row.getAttribute('data-cat') || '';
+                var match = !q || name.includes(q) || cat.includes(q);
+                row.style.display = match ? '' : 'none';
+                if (match) visible++;
+            });
+            var countEl = document.getElementById('docs-count');
+            if (countEl) countEl.innerText = visible;
+        });
+    </script>
+</body>
+</html>

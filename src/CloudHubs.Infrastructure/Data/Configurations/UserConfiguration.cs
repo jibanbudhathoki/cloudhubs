@@ -13,6 +13,7 @@ internal sealed class UserConfiguration : IEntityTypeConfiguration<User>
         entity.Property(x => x.Email).HasMaxLength(200);
         entity.Property(x => x.LoginId).HasMaxLength(200);
         entity.Property(x => x.PasswordHash).HasMaxLength(512);
+        entity.Property(x => x.PasswordResetTokenHash).HasMaxLength(128);
         entity.HasIndex(x => x.Email).IsUnique();
         entity.HasIndex(x => x.LoginId).IsUnique().HasFilter("\"LoginId\" IS NOT NULL");
     }

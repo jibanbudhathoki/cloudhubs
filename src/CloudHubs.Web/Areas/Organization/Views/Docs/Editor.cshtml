@@ -1,0 +1,690 @@
+@model CloudHubs.Web.ViewModels.Docs.OrganizationDocEditorViewModel
+@{
+    Layout = null;
+    ViewData["Title"] = Model.IsEdit ? $"Edit Documentation - {Model.Form.Title}" : "Create Documentation Profile";
+    var currentOrganization = Model.CurrentOrganization!;
+}
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@(Model.IsEdit ? "Edit Documentation" : "New Documentation Profile") - CloudHubs</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/lib/quill/quill.snow.css" />
+    <link rel="stylesheet" href="~/css/portal.css" />
+    <style>
+        .editor-shell {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .form-section-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+        }
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 18px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .section-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 2px;
+        }
+        .section-subtitle {
+            font-size: 13px;
+            color: #64748b;
+            margin: 0;
+        }
+        .optional-badge {
+            font-size: 11px;
+            font-weight: 600;
+            background: #f1f5f9;
+            color: #64748b;
+            border: 1px solid #e2e8f0;
+            padding: 2px 7px;
+            border-radius: 10px;
+        }
+
+        .upload-dropzone {
+            border: 2px dashed #cbd5e1;
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 18px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .upload-dropzone:hover {
+            border-color: #059669;
+            background: #f0fdf4;
+        }
+
+        /* Quill Rich Text Editor Customization */
+        .ql-toolbar.ql-snow {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
+            padding: 10px 14px;
+        }
+        .editor-quick-bar {
+            background: #f1f5f9;
+            border-left: 1px solid #e2e8f0;
+            border-right: 1px solid #e2e8f0;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 8px 14px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+        }
+        .quick-bar-title {
+            font-size: 11px;
+            font-weight: 700;
+            color: #475569;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-right: 4px;
+        }
+        .ql-container.ql-snow {
+            border: 1px solid #e2e8f0;
+            border-top: 0;
+            border-bottom-left-radius: 8px;
+            border-bottom-right-radius: 8px;
+            background: #ffffff;
+            font-size: 14.5px;
+            line-height: 1.7;
+            color: #0f172a;
+        }
+        .ql-editor {
+            min-height: 480px;
+            padding: 20px 24px;
+        }
+        .ql-editor.ql-blank::before {
+            color: #94a3b8;
+            font-style: normal;
+        }
+        .ql-editor h1 {
+            font-size: 22px;
+            font-weight: 800;
+            color: #0f172a;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 8px;
+            margin-top: 14px;
+            margin-bottom: 12px;
+        }
+        .ql-editor h2 {
+            font-size: 17px;
+            font-weight: 700;
+            color: #0f172a;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+        .ql-editor h3 {
+            font-size: 15px;
+            font-weight: 700;
+            color: #1e293b;
+            margin-top: 16px;
+            margin-bottom: 8px;
+        }
+        .ql-editor pre.ql-syntax,
+        .ql-editor pre {
+            background: #0f172a;
+            color: #f8fafc;
+            border-radius: 6px;
+            padding: 12px 16px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 13px;
+            margin: 12px 0;
+        }
+        .ql-editor code {
+            background: #f1f5f9;
+            color: #0f172a;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 13px;
+            font-family: ui-monospace, monospace;
+        }
+        .ql-editor pre code {
+            background: transparent;
+            color: #e2e8f0;
+            padding: 0;
+        }
+        .ql-editor blockquote {
+            border-left: 4px solid #059669;
+            background: #f0fdf4;
+            padding: 10px 14px;
+            border-radius: 4px;
+            color: #166534;
+            margin: 14px 0;
+        }
+    </style>
+</head>
+<body>
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+    <div class="admin-shell">
+        <aside class="admin-sidebar organization-sidebar">
+            <a class="brand" href="/organization">
+                <span class="brand-mark">C</span>
+                <span><strong>CloudHubs</strong><small>ORGANIZATION</small></span>
+            </a>
+            <p class="role-label">CURRENT ORGANIZATION</p>
+            @if (Model.Organizations.Count > 1 || Model.CanShowOrganizationAction)
+            {
+                <details class="workspace-top-dropdown">
+                    <summary class="role-switch workspace-top-trigger" title="Click to switch workspace">
+                        <span class="tenant-mark">@currentOrganization.Name[..Math.Min(currentOrganization.Name.Length, 2)].ToUpperInvariant()</span>
+                        <span class="workspace-meta">
+                            <strong>@currentOrganization.Name</strong>
+                            <small>@currentOrganization.Role</small>
+                        </span>
+                        <span class="workspace-switch-badge">Switch ▾</span>
+                    </summary>
+                    <div class="workspace-top-menu">
+                        <div class="workspace-menu-label">CURRENT WORKSPACE</div>
+                        <div class="workspace-menu-item current">
+                            <span class="tenant-mark-sm">@currentOrganization.Name[..Math.Min(currentOrganization.Name.Length, 2)].ToUpperInvariant()</span>
+                            <span class="workspace-menu-name">@currentOrganization.Name</span>
+                            <span class="workspace-check">✓</span>
+                        </div>
+                        @if (Model.Organizations.Count > 1)
+                        {
+                            <div class="workspace-menu-divider"></div>
+                            <div class="workspace-menu-label">SWITCH WORKSPACE</div>
+                            @foreach (var org in Model.Organizations.Where(item => item.Id != currentOrganization.Id))
+                            {
+                                <form method="post" action="/organization/select" class="workspace-menu-form">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="organizationId" value="@org.Id" />
+                                    <button class="workspace-menu-item" type="submit">
+                                        <span class="tenant-mark-sm">@org.Name[..Math.Min(org.Name.Length, 2)].ToUpperInvariant()</span>
+                                        <span class="workspace-menu-name">@org.Name</span>
+                                    </button>
+                                </form>
+                            }
+                        }
+                        <div class="workspace-menu-divider"></div>
+                        @if (Model.CanShowOrganizationAction)
+                        {
+                            <a class="workspace-menu-item action-link" href="/organization/create">
+                                <span class="workspace-action-icon">+</span>
+                                <span>Add organization</span>
+                            </a>
+                        }
+                        <form method="post" action="/organization/workspaces" class="workspace-menu-form">
+                            @Html.AntiForgeryToken()
+                            <button class="workspace-menu-item action-link" type="submit">
+                                <span class="workspace-action-icon">⊞</span>
+                                <span>View all workspaces</span>
+                            </button>
+                        </form>
+                    </div>
+                </details>
+            }
+            else
+            {
+                <div class="role-switch">
+                    <span class="tenant-mark">@currentOrganization.Name[..Math.Min(currentOrganization.Name.Length, 2)].ToUpperInvariant()</span>
+                    <span><strong>@currentOrganization.Name</strong><small>@currentOrganization.Role</small></span>
+                </div>
+            }
+            <nav class="side-nav" aria-label="Workspace sections">
+                <a class="side-link" href="/organization">Overview</a>
+                <a class="side-link" href="/organization/projects">Projects</a>
+                <a class="side-link" href="/organization/merospace">MeroSpace</a>
+                <a class="side-link active" href="/organization/docs" aria-current="page">Docs</a>
+                @if (Model.CanViewMembers)
+                {
+                    <a class="side-link" href="/organization/members">Members</a>
+                }
+                <a class="side-link" href="/organization/settings">Settings</a>
+            </nav>
+            <div class="sidebar-spacer"></div>
+            <div class="organization-sidebar-account">
+                <span class="avatar">@((Model.UserName.Length > 0 ? Model.UserName[..1] : "U").ToUpperInvariant())</span>
+                <span><strong>@Model.UserName</strong><small>@Model.UserEmail</small></span>
+            </div>
+        </aside>
+
+        <main class="admin-main" id="main-content" tabindex="-1">
+            <header class="topbar">
+                <div class="breadcrumbs">
+                    <a href="/organization">Workspace</a>
+                    <span>/</span>
+                    <a href="/organization">@currentOrganization.Name</a>
+                    <span>/</span>
+                    <a href="/organization/docs">Docs</a>
+                    <span>/</span>
+                    <strong>@(Model.IsEdit ? $"Edit: {Model.Form.Title}" : "New Documentation Profile")</strong>
+                </div>
+                <div class="heading-actions">
+                    <a class="btn btn-outline-secondary btn-sm" href="/organization/docs@(Model.IsEdit && Model.DocId.HasValue ? $"/{Model.DocId.Value}" : "")">
+                        Cancel &amp; Return
+                    </a>
+                </div>
+            </header>
+
+            <div class="page-content organization-content editor-shell">
+                @if (TempData["Error"] is string error)
+                {
+                    <div class="alert alert-danger" role="alert">@error</div>
+                }
+
+                <form method="post" action="/organization/docs/@(Model.IsEdit ? $"{Model.DocId}/edit" : "create")" enctype="multipart/form-data" id="doc-editor-form">
+                    @Html.AntiForgeryToken()
+
+                    <!-- SECTION 1: Identity & Meta -->
+                    <div class="form-section-card">
+                        <div class="section-header">
+                            <div>
+                                <h2 class="section-title">@(Model.IsEdit ? "Edit Documentation Profile" : "Create Documentation Profile")</h2>
+                                <p class="section-subtitle">Define API title, categorization, and links for your team members.</p>
+                            </div>
+                            <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2">
+                                @(Model.IsEdit ? "Editing Profile" : "New Profile")
+                            </span>
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-md-5">
+                                <label class="form-label fw-bold small">Documentation Title *</label>
+                                <input type="text" class="form-control" name="Title" value="@Model.Form.Title" placeholder="e.g. Payments Gateway API, Mobile Core API" required autofocus />
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold small">Slug (URL friendly)</label>
+                                <input type="text" class="form-control" name="Slug" value="@Model.Form.Slug" placeholder="payments-api (auto-generated if empty)" />
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label fw-bold small">Category</label>
+                                <input type="text" class="form-control" name="Category" value="@Model.Form.Category" placeholder="API, Mobile, Integration" />
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label fw-bold small">Linked Project</label>
+                                <select class="form-select" name="ProjectId">
+                                    <option value="">(Standalone API)</option>
+                                    @foreach (var p in Model.Projects)
+                                    {
+                                        <option value="@p.Id" selected="@(p.Id == Model.Form.ProjectId)">@p.Name</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label fw-bold small">Summary Description</label>
+                                <input type="text" class="form-control" name="Description" value="@Model.Form.Description" placeholder="Brief summary of what this API or service provides..." />
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SECTION 2: Credentials & Connection -->
+                    <div class="form-section-card">
+                        <div class="section-header">
+                            <div>
+                                <h2 class="section-title">API Endpoint &amp; Authentication</h2>
+                                <p class="section-subtitle">Configure the base URL and API keys (Live &amp; Test/Demo) for this service.</p>
+                            </div>
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label fw-bold small">Base API URL</label>
+                                <input type="text" class="form-control font-monospace" name="BaseUrl" value="@Model.Form.BaseUrl" placeholder="https://api.yourdomain.com/v1" />
+                                <div class="form-text small text-muted">The root URL endpoint developers use for making requests (leave blank or specify custom URL).</div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="d-flex align-items-center justify-content-between mb-1">
+                                    <label class="form-label fw-bold small mb-0">Live API Key (Production)</label>
+                                    <span class="optional-badge">Optional</span>
+                                </div>
+                                <input type="text" class="form-control font-monospace" name="ApiKey" value="@Model.Form.ApiKey" placeholder="ch_live_... (optional)" />
+                                <div class="form-text small text-muted">Active production key for live integration.</div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="d-flex align-items-center justify-content-between mb-1">
+                                    <label class="form-label fw-bold small mb-0">Test / Demo API Key (Sandbox)</label>
+                                    <span class="optional-badge">Optional</span>
+                                </div>
+                                <input type="text" class="form-control font-monospace" name="TestApiKey" value="@Model.Form.TestApiKey" placeholder="ch_test_... or demo key (optional)" />
+                                <div class="form-text small text-muted">Sandbox or test key for development.</div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="d-flex align-items-center justify-content-between mb-1">
+                                    <label class="form-label fw-bold small mb-0">Secret Key / Webhook Secret</label>
+                                    <span class="optional-badge">Optional</span>
+                                </div>
+                                <input type="text" class="form-control font-monospace" name="SecretKey" value="@Model.Form.SecretKey" placeholder="whsec_... (optional)" />
+                                <div class="form-text small text-muted">Private signing or webhook secret.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SECTION 2B: Member Access Control & Permissions -->
+                    <div class="form-section-card">
+                        <div class="section-header">
+                            <div>
+                                <h2 class="section-title">👥 Member Access Control</h2>
+                                <p class="section-subtitle">Choose who has permission to view and access this documentation and its credentials.</p>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="radio" name="IsPublicToMembers" id="access-all" value="true" @(Model.Form.IsPublicToMembers ? "checked" : "") onchange="toggleAccessList(true)" />
+                                <label class="form-check-label fw-bold small" for="access-all">
+                                    🌐 All Organization Members
+                                </label>
+                                <div class="text-muted small ps-4">Everyone in this workspace can view this documentation.</div>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="IsPublicToMembers" id="access-specific" value="false" @(!Model.Form.IsPublicToMembers ? "checked" : "") onchange="toggleAccessList(false)" />
+                                <label class="form-check-label fw-bold small" for="access-specific">
+                                    🔒 Specific Members Only
+                                </label>
+                                <div class="text-muted small ps-4">Only selected members (and Workspace Admins) can view this documentation.</div>
+                            </div>
+                        </div>
+
+                        <div id="specific-members-card" class="p-3 border rounded bg-light" style="display: @(Model.Form.IsPublicToMembers ? "none" : "block");">
+                            <label class="form-label fw-bold small mb-2">Select Members Who Can View This Documentation:</label>
+                            @if (Model.OrganizationMembers.Count == 0)
+                            {
+                                <p class="text-muted small mb-0">No other members in this organization yet.</p>
+                            }
+                            else
+                            {
+                                <div class="row g-2">
+                                    @foreach (var member in Model.OrganizationMembers)
+                                    {
+                                        var isChecked = Model.Form.AllowedMemberUserIds.Contains(member.UserId);
+                                        <div class="col-md-6">
+                                            <div class="form-check p-2 border rounded bg-white d-flex align-items-center gap-2">
+                                                <input class="form-check-input ms-0 me-2" type="checkbox" name="AllowedMemberUserIds" value="@member.UserId" id="member-@member.UserId" @(isChecked ? "checked" : "") />
+                                                <label class="form-check-label small d-flex flex-column" for="member-@member.UserId">
+                                                    <strong>@member.User.Name</strong>
+                                                    <span class="text-muted" style="font-size: 11px;">@member.User.Email &middot; <span class="badge bg-light text-secondary border">@member.Role</span></span>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- SECTION 3: Postman & Bruno Collections -->
+                    <div class="form-section-card">
+                        <div class="section-header">
+                            <div>
+                                <h2 class="section-title">🚀 Postman / Bruno Collection</h2>
+                                <p class="section-subtitle">Upload a collection file or paste raw JSON. Developers can download and import it in 1 click.</p>
+                            </div>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="formatPostmanJson()">Format JSON</button>
+                        </div>
+
+                        <!-- File Upload Dropzone -->
+                        <div class="upload-dropzone mb-3" onclick="document.getElementById('postman-file-input').click()">
+                            <input type="file" id="postman-file-input" name="postmanFile" accept=".json,.bru" style="display: none;" onchange="handlePostmanFile(this)" />
+                            <div class="text-success fw-bold small">📁 Click or Drag &amp; Drop Postman Collection (.json) or Bruno File (.bru)</div>
+                            <small class="text-muted" id="postman-file-label">Supports Postman Collection v2.0/v2.1 JSON or Bruno file</small>
+                        </div>
+
+                        <div>
+                            <label class="form-label fw-bold small" for="postman-textarea">Collection Content (JSON)</label>
+                            <textarea class="form-control font-monospace" id="postman-textarea" name="PostmanCollection" rows="6" placeholder='{"info": {"name": "Collection Name"}, "item": []}'>@Model.Form.PostmanCollection</textarea>
+                        </div>
+                    </div>
+
+                    <!-- SECTION 4: Environment Variables -->
+                    <div class="form-section-card">
+                        <div class="section-header">
+                            <div>
+                                <h2 class="section-title">🔐 Environment Variables (.env)</h2>
+                                <p class="section-subtitle">Upload a <code>.env</code> file or paste KEY=VALUE lines. Developers can download this directly as <code>.env</code>.</p>
+                            </div>
+                        </div>
+
+                        <!-- File Upload Dropzone -->
+                        <div class="upload-dropzone mb-3" onclick="document.getElementById('env-file-input').click()">
+                            <input type="file" id="env-file-input" name="envFile" accept=".env,.env.*,.txt" style="display: none;" onchange="handleEnvFile(this)" />
+                            <div class="text-success fw-bold small">📄 Click or Drag &amp; Drop .env File (.env, .env.example, .env.local)</div>
+                            <small class="text-muted" id="env-file-label">Upload your local environment file to auto-populate</small>
+                        </div>
+
+                        <div>
+                            <label class="form-label fw-bold small" for="env-textarea">Environment Variables (KEY=VALUE per line)</label>
+                            <textarea class="form-control font-monospace" id="env-textarea" name="EnvironmentVariables" rows="5" placeholder="PORT=3000&#10;NODE_ENV=development&#10;DATABASE_URL=postgres://user:pass@localhost:5432/db">@Model.Form.EnvironmentVariables</textarea>
+                        </div>
+                    </div>
+
+                    <!-- SECTION 5: WYSIWYG Rich Text Editor -->
+                    <div class="form-section-card">
+                        <div class="section-header">
+                            <div>
+                                <h2 class="section-title">📖 Documentation &amp; Endpoints (Rich Text Editor)</h2>
+                                <p class="section-subtitle">Type directly into the visual rich text editor with full formatting, code blocks, and endpoints.</p>
+                            </div>
+                        </div>
+
+                        <!-- Standard Quill Toolbar -->
+                        <div id="quill-custom-toolbar">
+                            <span class="ql-formats">
+                                <select class="ql-header">
+                                    <option value="" selected>Normal</option>
+                                    <option value="1">Heading 1</option>
+                                    <option value="2">Heading 2</option>
+                                    <option value="3">Heading 3</option>
+                                </select>
+                            </span>
+                            <span class="ql-formats">
+                                <button class="ql-bold"></button>
+                                <button class="ql-italic"></button>
+                                <button class="ql-underline"></button>
+                                <button class="ql-strike"></button>
+                            </span>
+                            <span class="ql-formats">
+                                <select class="ql-color"></select>
+                                <select class="ql-background"></select>
+                            </span>
+                            <span class="ql-formats">
+                                <button class="ql-code"></button>
+                                <button class="ql-code-block"></button>
+                                <button class="ql-blockquote"></button>
+                            </span>
+                            <span class="ql-formats">
+                                <button class="ql-list" value="ordered"></button>
+                                <button class="ql-list" value="bullet"></button>
+                            </span>
+                            <span class="ql-formats">
+                                <button class="ql-link"></button>
+                                <button class="ql-clean"></button>
+                            </span>
+                        </div>
+
+                        <!-- Dedicated Quick Action Bar (Outside Quill toolbar to prevent styling collisions) -->
+                        <div class="editor-quick-bar">
+                            <span class="quick-bar-title">⚡ Quick Insert:</span>
+                            <button type="button" class="btn btn-sm btn-outline-primary py-1 px-2" onclick="insertEndpointQuill('GET')" title="Insert GET Endpoint">+ GET Endpoint</button>
+                            <button type="button" class="btn btn-sm btn-outline-success py-1 px-2" onclick="insertEndpointQuill('POST')" title="Insert POST Endpoint">+ POST Endpoint</button>
+                            <button type="button" class="btn btn-sm btn-outline-warning py-1 px-2" onclick="insertEndpointQuill('PUT')" title="Insert PUT Endpoint">+ PUT Endpoint</button>
+                            <button type="button" class="btn btn-sm btn-outline-danger py-1 px-2" onclick="insertEndpointQuill('DELETE')" title="Insert DELETE Endpoint">+ DEL Endpoint</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary py-1 px-2" onclick="insertTableQuill()" title="Insert Parameter Table">📊 Parameters Table</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary py-1 px-2" onclick="insertCalloutQuill()" title="Insert Alert Note">💡 Note Callout</button>
+                        </div>
+
+                        <!-- Quill Editor Canvas -->
+                        <div id="quill-editor"></div>
+
+                        <!-- Hidden Input holding the submitted HTML -->
+                        <input type="hidden" name="Content" id="quill-content-input" />
+                        <textarea id="raw-initial-content" style="display: none;">@Model.Form.Content</textarea>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="d-flex justify-content-between align-items-center pt-2 pb-5">
+                        <a class="btn btn-outline-secondary" href="/organization/docs@(Model.IsEdit && Model.DocId.HasValue ? $"/{Model.DocId.Value}" : "")">
+                            ← Cancel
+                        </a>
+                        <button type="submit" class="btn btn-success px-4 py-2 fw-bold">
+                            💾 @(Model.IsEdit ? "Save Documentation Changes" : "Create Documentation Profile")
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </main>
+    </div>
+
+    <script src="~/lib/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <script src="~/lib/quill/quill.js"></script>
+    <script src="~/js/portal.js"></script>
+    <script>
+        // Initialize Quill WYSIWYG Editor
+        var quill = new Quill('#quill-editor', {
+            theme: 'snow',
+            modules: {
+                toolbar: '#quill-custom-toolbar'
+            },
+            placeholder: 'Write your API documentation, parameters, and endpoints here...'
+        });
+
+        // Convert existing markdown text to HTML if not already HTML
+        function convertMarkdownToHtml(md) {
+            if (!md) return '';
+            var trimmed = md.trim();
+            if (trimmed.startsWith('<') && (trimmed.endsWith('>') || trimmed.includes('</'))) {
+                return md;
+            }
+            return md
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+                .replace(/^## (.*$)/gim, '<h2>$1</h2>')
+                .replace(/^# (.*$)/gim, '<h1>$1</h1>')
+                .replace(/```([a-z]*)\n([\s\S]*?)```/gim, '<pre class="ql-syntax">$2</pre>')
+                .replace(/`([^`]+)`/gim, '<code>$1</code>')
+                .replace(/\*\*([^*]+)\*\*/gim, '<strong>$1</strong>')
+                .replace(/\*([^*]+)\*/gim, '<em>$1</em>')
+                .replace(/^> (.*$)/gim, '<blockquote>$1</blockquote>')
+                .replace(/^\- (.*$)/gim, '<li>$1</li>')
+                .replace(/\n\n/gim, '<p><br></p>')
+                .replace(/\n/gim, '<br>');
+        }
+
+        // Load initial content into Quill
+        var initialContent = document.getElementById('raw-initial-content')?.value || '';
+        if (initialContent) {
+            var html = convertMarkdownToHtml(initialContent);
+            quill.clipboard.dangerouslyPasteHTML(html);
+        }
+
+        // On form submit, sync Quill HTML to hidden input
+        var editorForm = document.getElementById('doc-editor-form');
+        if (editorForm) {
+            editorForm.addEventListener('submit', function() {
+                var contentInput = document.getElementById('quill-content-input');
+                if (contentInput) {
+                    contentInput.value = quill.root.innerHTML;
+                }
+            });
+        }
+
+        // Quick Endpoint Insert in Quill
+        function insertEndpointQuill(method) {
+            var range = quill.getSelection(true) || { index: quill.getLength() };
+            var color = method === 'GET' ? '#1d4ed8' : (method === 'POST' ? '#15803d' : (method === 'PUT' ? '#b45309' : '#b91c1c'));
+            var bg = method === 'GET' ? '#eff6ff' : (method === 'POST' ? '#f0fdf4' : (method === 'PUT' ? '#fef3c7' : '#fee2e2'));
+
+            var html = '<p><br></p>' +
+                '<h3><span style="background-color: ' + bg + '; color: ' + color + '; padding: 3px 8px; border-radius: 4px; font-family: monospace; font-size: 13px; font-weight: bold;">' + method + '</span> <code>/api/v1/resource</code></h3>' +
+                '<p><strong>Description:</strong> Explain what this endpoint returns or accepts.</p>' +
+                '<p><strong>Headers:</strong></p>' +
+                '<ul><li><code>Content-Type: application/json</code></li></ul>' +
+                (method !== 'GET' ? '<p><strong>Request Body (JSON):</strong></p><pre class="ql-syntax">{\n  "name": "Sample",\n  "enabled": true\n}</pre>' : '') +
+                '<p><strong>Response (200 OK):</strong></p>' +
+                '<pre class="ql-syntax">{\n  "status": "success",\n  "data": []\n}</pre><p><br></p>';
+
+            quill.clipboard.dangerouslyPasteHTML(range.index, html);
+        }
+
+        function insertTableQuill() {
+            var range = quill.getSelection(true) || { index: quill.getLength() };
+            var html = '<p><br></p>' +
+                '<p><strong>Parameters:</strong></p>' +
+                '<ul>' +
+                '<li><code>id</code> <em>(string, required)</em> — Unique identifier</li>' +
+                '<li><code>page</code> <em>(integer, optional)</em> — Page number for pagination</li>' +
+                '<li><code>limit</code> <em>(integer, optional)</em> — Number of items per page</li>' +
+                '</ul><p><br></p>';
+            quill.clipboard.dangerouslyPasteHTML(range.index, html);
+        }
+
+        function insertCalloutQuill() {
+            var range = quill.getSelection(true) || { index: quill.getLength() };
+            var html = '<blockquote><strong>Note:</strong> Add important integration tips, rate limits, or requirements here.</blockquote><p><br></p>';
+            quill.clipboard.dangerouslyPasteHTML(range.index, html);
+        }
+
+        // Postman / Bruno file handling
+        function handlePostmanFile(input) {
+            if (input.files && input.files[0]) {
+                var file = input.files[0];
+                document.getElementById('postman-file-label').innerText = '✓ Loaded: ' + file.name + ' (' + Math.round(file.size / 1024) + ' KB)';
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    var content = e.target.result;
+                    var ta = document.getElementById('postman-textarea');
+                    if (ta) {
+                        try {
+                            var parsed = JSON.parse(content);
+                            ta.value = JSON.stringify(parsed, null, 2);
+                        } catch (err) {
+                            ta.value = content;
+                        }
+                    }
+                };
+                reader.readAsText(file);
+            }
+        }
+
+        // Format JSON button
+        function formatPostmanJson() {
+            var ta = document.getElementById('postman-textarea');
+            if (ta && ta.value) {
+                try {
+                    var parsed = JSON.parse(ta.value);
+                    ta.value = JSON.stringify(parsed, null, 2);
+                } catch (e) {
+                    alert('Invalid JSON: ' + e.message);
+                }
+            }
+        }
+
+        // Environment file handling
+        function handleEnvFile(input) {
+            if (input.files && input.files[0]) {
+                var file = input.files[0];
+                document.getElementById('env-file-label').innerText = '✓ Loaded: ' + file.name + ' (' + file.size + ' bytes)';
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    var ta = document.getElementById('env-textarea');
+                    if (ta) ta.value = e.target.result;
+                };
+                reader.readAsText(file);
+            }
+        }
+        function toggleAccessList(isAll) {
+            var card = document.getElementById('specific-members-card');
+            if (card) {
+                card.style.display = isAll ? 'none' : 'block';
+            }
+        }
+    </script>
+</body>
+</html>

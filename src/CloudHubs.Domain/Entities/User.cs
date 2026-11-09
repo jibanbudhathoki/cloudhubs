@@ -12,6 +12,8 @@ public class User : AuditableEntity
     public UserRole Role { get; set; } = UserRole.Viewer;
     public bool IsActive { get; set; } = true;
     public bool MustChangePasswordOnNextLogin { get; set; }
+    public string? PasswordResetTokenHash { get; set; }
+    public DateTime? PasswordResetTokenExpiresAt { get; set; }
     public ICollection<OrganizationMembership> OrganizationMemberships { get; set; } = new List<OrganizationMembership>();
     public AccountSubscription? AccountSubscription { get; set; }
 }

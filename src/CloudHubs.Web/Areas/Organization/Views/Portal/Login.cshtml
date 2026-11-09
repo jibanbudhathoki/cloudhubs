@@ -28,6 +28,12 @@
             <p class="eyebrow">ORGANIZATION PORTAL</p>
             <h1>Sign in</h1>
             <p>Sign in with the admin email or member ID and its password.</p>
+            @if (TempData["Success"] is string successMessage)
+            {
+                <div class="alert alert-success" role="status">
+                    @successMessage
+                </div>
+            }
             @if (loginErrors.Length > 0)
             {
                 <div class="alert alert-danger" role="alert" aria-live="assertive">
@@ -46,7 +52,10 @@
                 <label asp-for="Identifier">Email or Member ID</label>
                 <input asp-for="Identifier" class="form-control" autocomplete="username" required />
                 <span asp-validation-for="Identifier" class="text-danger"></span>
-                <label asp-for="Password">Password</label>
+                <div class="d-flex justify-content-between align-items-center mt-2">
+                    <label asp-for="Password" class="mt-0 mb-0">Password</label>
+                    <a href="/forgot-password" class="text-success small text-decoration-none">Forgot password?</a>
+                </div>
                 <input asp-for="Password" class="form-control" autocomplete="current-password" required />
                 <span asp-validation-for="Password" class="text-danger"></span>
                 <button class="btn btn-success w-100 mt-3" type="submit">Sign in</button>

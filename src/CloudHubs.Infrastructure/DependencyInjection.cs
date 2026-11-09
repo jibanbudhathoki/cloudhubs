@@ -1,11 +1,13 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using CloudHubs.Application.Modules.Docs.Interfaces;
 using CloudHubs.Application.Modules.Organizations.Interfaces;
 using CloudHubs.Application.Modules.Platform.Interfaces;
 using CloudHubs.Application.Modules.Projects.Interfaces;
 using CloudHubs.Application.Modules.Subscriptions.Interfaces;
 using CloudHubs.Application.Modules.Users.Interfaces;
 using CloudHubs.Infrastructure.Data;
+using CloudHubs.Infrastructure.Modules.Docs;
 using CloudHubs.Infrastructure.Modules.Organizations;
 using CloudHubs.Infrastructure.Modules.Platform;
 using CloudHubs.Infrastructure.Modules.Projects;
@@ -22,6 +24,7 @@ public static class DependencyInjection
         services.AddDbContext<CloudHubsDbContext>(options => options.UseNpgsql(connectionString));
 
         services.AddScoped<IOrganizationRepository, OrganizationRepository>();
+        services.AddScoped<IOrganizationDocRepository, OrganizationDocRepository>();
         services.AddScoped<IAccountSubscriptionRepository, AccountSubscriptionRepository>();
         services.AddScoped<ISubscriptionPlanRepository, SubscriptionPlanRepository>();
         services.AddScoped<IOrganizationRoleRepository, OrganizationRoleRepository>();
@@ -35,6 +38,7 @@ public static class DependencyInjection
         services.AddSingleton<IProjectProcessRunner, ProjectProcessRunner>();
 
         services.AddScoped<OrganizationCreatedNotificationSender>();
+        services.AddScoped<IPasswordResetEmailSender, PasswordResetEmailSender>();
 
         return services;
     }

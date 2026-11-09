@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using CloudHubs.Application;
 using CloudHubs.Application.Modules.Platform.Services;
+using CloudHubs.Application.Modules.Users.Interfaces;
 using CloudHubs.Domain.Entities;
 using CloudHubs.Infrastructure;
 using CloudHubs.Web.Middleware;
@@ -145,13 +146,15 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
             RoleClaimType = ClaimTypes.Role,
             ValidAlgorithms = [SecurityAlgorithms.HmacSha256]
         };
-    });
+    })
+    .AddScheme<ApiKeyAuthenticationOptions, ApiKeyAuthenticationHandler>(ApiKeyDefaults.AuthenticationScheme, _ => { });
 builder.Services.AddAuthorization();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi();
 builder.Services.AddHealthChecks();
 builder.Services.AddApplication();
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
+builder.Services.AddScoped<IPasswordHashingService, PasswordHashingService>();
 builder.Services.AddScoped<SuperuserCredentialValidator>();
 builder.Services.AddScoped<TenantTokenIssuer>();
 

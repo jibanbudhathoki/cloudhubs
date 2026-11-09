@@ -1,0 +1,1221 @@
+@model CloudHubs.Web.ViewModels.Organizations.OrganizationAccountViewModel
+@{
+    Layout = null;
+    var organization = Model.CurrentOrganization;
+    var activeCategory = Model.SelectedCategory?.ToLowerInvariant();
+    var isDetail = Model.IsCategoryDetailPage;
+
+    var pageTitle = activeCategory switch
+    {
+        "workspace" => "Workspace Profile Settings",
+        "api" => "Platform API & Custom Dashboard Settings",
+        "subscription" => "Subscription Packages & Feature Unlocks",
+        "profile" => "Admin Profile & Security Settings",
+        _ => "Settings & Subscription Packages"
+    };
+    ViewData["Title"] = pageTitle;
+}
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@pageTitle - CloudHubs</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/portal.css" />
+    <style>
+        .settings-container {
+            max-width: 1160px;
+            margin: 0 auto;
+        }
+
+        /* Category Cards Grid (Hub View) */
+        .settings-cat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .cat-card {
+            background: #ffffff;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 22px 24px;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+            text-decoration: none;
+            color: inherit;
+        }
+        .cat-card:hover {
+            border-color: #059669;
+            transform: translateY(-3px);
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.07);
+            color: inherit;
+        }
+        .cat-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+        .cat-icon-wrap {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            background: #f1f5f9;
+        }
+        .cat-card:hover .cat-icon-wrap {
+            background: #dcfce7;
+        }
+        .cat-badge {
+            font-size: 11px;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 6px;
+        }
+        .cat-card-title {
+            font-size: 17px;
+            font-weight: 800;
+            color: #0f172a;
+            margin: 0 0 6px 0;
+        }
+        .cat-card-desc {
+            font-size: 13px;
+            color: #64748b;
+            margin: 0 0 18px 0;
+            line-height: 1.5;
+        }
+        .cat-card-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 13px;
+            font-weight: 700;
+            color: #059669;
+            padding-top: 14px;
+            border-top: 1px solid #f1f5f9;
+        }
+        .cat-card:hover .cat-card-footer {
+            border-top-color: #bbf7d0;
+            color: #047857;
+        }
+
+
+
+        /* Settings Detail Card */
+        .settings-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 28px;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+            margin-bottom: 24px;
+        }
+        .settings-card-header {
+            border-bottom: 1px solid #f1f5f9;
+            padding-bottom: 18px;
+            margin-bottom: 22px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .settings-card-title {
+            font-size: 18px;
+            font-weight: 800;
+            color: #0f172a;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .settings-card-desc {
+            font-size: 13.5px;
+            color: #64748b;
+            margin: 4px 0 0 0;
+        }
+
+        /* API Box */
+        .api-key-box {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #0f172a;
+            border: 1px solid #1e293b;
+            border-radius: 8px;
+            padding: 12px 16px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 13px;
+            color: #38bdf8;
+            word-break: break-all;
+        }
+        .api-key-masked {
+            letter-spacing: 2px;
+        }
+
+        /* Package & Subscription Cards */
+        .package-tier-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 28px;
+        }
+        .package-tier-card {
+            background: #ffffff;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            transition: all 0.2s ease;
+        }
+        .package-tier-card.featured {
+            border-color: #059669;
+            box-shadow: 0 4px 18px rgba(5, 150, 105, 0.14);
+        }
+        .package-tier-card.current {
+            background: #f8fafc;
+            border-color: #64748b;
+        }
+        .package-tier-card.featured.current {
+            background: #f0fdf4;
+            border-color: #059669;
+        }
+        .package-tag {
+            position: absolute;
+            top: -12px;
+            right: 20px;
+            background: #059669;
+            color: #ffffff;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 3px 10px;
+            border-radius: 20px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .package-price {
+            font-size: 32px;
+            font-weight: 800;
+            color: #0f172a;
+            margin: 10px 0 16px 0;
+            display: flex;
+            align-items: baseline;
+            gap: 4px;
+        }
+        .package-price small {
+            font-size: 13px;
+            font-weight: 500;
+            color: #64748b;
+        }
+        .feature-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 13px;
+            margin-bottom: 10px;
+            color: #334155;
+            line-height: 1.45;
+        }
+        .feature-icon-unlocked {
+            color: #059669;
+            font-weight: 800;
+            font-size: 14px;
+        }
+        .feature-icon-locked {
+            color: #cbd5e1;
+            font-size: 14px;
+        }
+
+        /* Comparison Table */
+        .unlock-matrix-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            overflow: hidden;
+            font-size: 13px;
+        }
+        .unlock-matrix-table th {
+            background: #f8fafc;
+            padding: 12px 16px;
+            font-weight: 700;
+            color: #1e293b;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        .unlock-matrix-table td {
+            padding: 12px 16px;
+            border-bottom: 1px solid #f1f5f9;
+            color: #334155;
+        }
+        .unlock-matrix-table tr:last-child td {
+            border-bottom: 0;
+        }
+
+        .code-preview-block {
+            background: #0f172a;
+            color: #f8fafc;
+            border-radius: 8px;
+            padding: 14px 18px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 12.5px;
+            overflow-x: auto;
+            position: relative;
+        }
+        .btn-copy-code {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            font-size: 11px;
+            padding: 3px 8px;
+        }
+    </style>
+</head>
+<body>
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+    <div class="admin-shell">
+        <aside class="admin-sidebar organization-sidebar">
+            <a class="brand" href="/organization">
+                <span class="brand-mark">C</span>
+                <span><strong>CloudHubs</strong><small>ORGANIZATION</small></span>
+            </a>
+            @if (organization is not null)
+            {
+                <p class="role-label">CURRENT ORGANIZATION</p>
+                @if (Model.Organizations.Count > 1 || Model.CanShowOrganizationAction)
+                {
+                    <details class="workspace-top-dropdown">
+                        <summary class="role-switch workspace-top-trigger" title="Click to switch workspace">
+                            <span class="tenant-mark">@organization.Name[..Math.Min(organization.Name.Length, 2)].ToUpperInvariant()</span>
+                            <span class="workspace-meta">
+                                <strong>@organization.Name</strong>
+                                <small>@organization.Role</small>
+                            </span>
+                            <span class="workspace-switch-badge">Switch ▾</span>
+                        </summary>
+                        <div class="workspace-top-menu">
+                            <div class="workspace-menu-label">CURRENT WORKSPACE</div>
+                            <div class="workspace-menu-item current">
+                                <span class="tenant-mark-sm">@organization.Name[..Math.Min(organization.Name.Length, 2)].ToUpperInvariant()</span>
+                                <span class="workspace-menu-name">@organization.Name</span>
+                                <span class="workspace-check">✓</span>
+                            </div>
+                            @if (Model.Organizations.Count > 1)
+                            {
+                                <div class="workspace-menu-divider"></div>
+                                <div class="workspace-menu-label">SWITCH WORKSPACE</div>
+                                @foreach (var org in Model.Organizations.Where(item => item.Id != organization.Id))
+                                {
+                                    <form method="post" action="/organization/select" class="workspace-menu-form">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="organizationId" value="@org.Id" />
+                                        <button class="workspace-menu-item" type="submit">
+                                            <span class="tenant-mark-sm">@org.Name[..Math.Min(org.Name.Length, 2)].ToUpperInvariant()</span>
+                                            <span class="workspace-menu-name">@org.Name</span>
+                                        </button>
+                                    </form>
+                                }
+                            }
+                            <div class="workspace-menu-divider"></div>
+                            @if (Model.CanShowOrganizationAction)
+                            {
+                                <a class="workspace-menu-item action-link" href="/organization/create">
+                                    <span class="workspace-action-icon">+</span>
+                                    <span>Add organization</span>
+                                </a>
+                            }
+                            <form method="post" action="/organization/workspaces" class="workspace-menu-form">
+                                @Html.AntiForgeryToken()
+                                <button class="workspace-menu-item action-link" type="submit">
+                                    <span class="workspace-action-icon">⊞</span>
+                                    <span>View all workspaces</span>
+                                </button>
+                            </form>
+                        </div>
+                    </details>
+                }
+                else
+                {
+                    <div class="role-switch">
+                        <span class="tenant-mark">@organization.Name[..Math.Min(organization.Name.Length, 2)].ToUpperInvariant()</span>
+                        <span><strong>@organization.Name</strong><small>@organization.Role</small></span>
+                    </div>
+                }
+                <nav class="side-nav" aria-label="Workspace sections">
+                    <a class="side-link" href="/organization">Overview</a>
+                    @if (Model.CanViewProjects)
+                    {
+                        <a class="side-link" href="/organization/projects">Projects</a>
+                        <a class="side-link" href="/organization/merospace">MeroSpace</a>
+                    }
+                    <a class="side-link" href="/organization/docs">Docs</a>
+                    @if (Model.CanViewMembers)
+                    {
+                        <a class="side-link" href="/organization/members">Members</a>
+                    }
+                    <a class="side-link active" href="/organization/settings" aria-current="page">Settings</a>
+                </nav>
+            }
+            <div class="sidebar-spacer"></div>
+            <div class="organization-sidebar-account">
+                <span class="avatar">@((Model.UserName.Length > 0 ? Model.UserName[..1] : "U").ToUpperInvariant())</span>
+                <span><strong>@Model.UserName</strong><small>@Model.UserEmail</small></span>
+            </div>
+        </aside>
+
+        <main class="admin-main" id="main-content" tabindex="-1">
+            <header class="topbar">
+                <div class="breadcrumbs">
+                    <a href="/organization" class="text-decoration-none text-muted">Workspace</a>
+                    <span>/</span>
+                    <a href="/organization" class="text-decoration-none text-muted">@(organization?.Name ?? "Organization")</a>
+                    <span>/</span>
+                    @if (isDetail)
+                    {
+                        <a href="/organization/settings" class="text-decoration-none text-muted">Settings</a>
+                        <span>/</span>
+                        <strong>@(activeCategory switch {
+                            "workspace" => "Workspace Profile",
+                            "api" => "Platform API & Custom Dashboard",
+                            "subscription" => "Subscription & Packages",
+                            "profile" => "Admin Profile & Security",
+                            _ => "Settings Detail"
+                        })</strong>
+                    }
+                    else
+                    {
+                        <strong>Settings &amp; Packages</strong>
+                    }
+                </div>
+                <div class="heading-actions">
+                    @if (isDetail)
+                    {
+                        <a href="/organization/settings" class="btn btn-outline-secondary btn-sm">← Back to All Settings</a>
+                    }
+                    else
+                    {
+                        <a href="/organization" class="btn btn-outline-secondary btn-sm">← Back to Overview</a>
+                    }
+                </div>
+            </header>
+
+            <div class="organization-content py-4 px-3 px-md-4">
+                <div class="settings-container">
+                    @if (TempData["Success"] is string successMessage)
+                    {
+                        <div class="alert alert-success alert-dismissible fade show mb-4" role="status">
+                            <strong>Success:</strong> @successMessage
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    }
+                    @if (TempData["Error"] is string errorMessage)
+                    {
+                        <div class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
+                            <strong>Error:</strong> @errorMessage
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    }
+
+                    @if (!isDetail)
+                    {
+                        <!-- ========================================== -->
+                        <!-- 1. SETTINGS HUB (SHOWS ONLY CATEGORY CARDS) -->
+                        <!-- ========================================== -->
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+                            <div>
+                                <h1 class="h3 fw-bold mb-1">Organization Settings</h1>
+                                <p class="text-muted small mb-0">Select a category below to configure your workspace, manage API credentials, upgrade packages, or edit admin security.</p>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge bg-light text-dark border">Plan: <strong class="text-success">@Model.SubscriptionPlan</strong></span>
+                                <span class="badge bg-success">@Model.UserRole</span>
+                            </div>
+                        </div>
+
+                        <!-- 4 Settings Category Cards -->
+                        <div class="settings-cat-grid">
+                            
+                            <!-- Card 1: Workspace Profile -->
+                            <a class="cat-card" href="/organization/settings/workspace">
+                                <div>
+                                    <div class="cat-card-header">
+                                        <div class="cat-icon-wrap">🏢</div>
+                                        <span class="cat-badge bg-success-subtle text-success border border-success-subtle">Active Org</span>
+                                    </div>
+                                    <h2 class="cat-card-title">Workspace Profile</h2>
+                                    <p class="cat-card-desc">Organization identity, branding, slug, primary contact email &amp; custom API base URL.</p>
+                                </div>
+                                <div class="cat-card-footer">
+                                    <span>@(organization?.Name ?? "Workspace Profile")</span>
+                                    <span>Open Settings &rarr;</span>
+                                </div>
+                            </a>
+
+                            <!-- Card 2: Platform API & Dashboard -->
+                            <a class="cat-card" href="/organization/settings/api">
+                                <div>
+                                    <div class="cat-card-header">
+                                        <div class="cat-icon-wrap">⚡</div>
+                                        @if (Model.IsProOrCustomPlan || Model.HasApiAccess)
+                                        {
+                                            <span class="cat-badge bg-success text-white">Pro API Unlocked</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="cat-badge bg-secondary-subtle text-secondary border">Pro / Custom</span>
+                                        }
+                                    </div>
+                                    <h2 class="cat-card-title">Platform API &amp; Dashboard</h2>
+                                    <p class="cat-card-desc">Master API keys, build your custom company dashboard, download Postman specs, and sync docs.</p>
+                                </div>
+                                <div class="cat-card-footer">
+                                    <span>@(Model.IsProOrCustomPlan || Model.HasApiAccess ? "REST API Enabled" : "Pro Plan Required")</span>
+                                    <span>Open Settings &rarr;</span>
+                                </div>
+                            </a>
+
+                            <!-- Card 3: Subscription & Packages -->
+                            <a class="cat-card" href="/organization/settings/subscription">
+                                <div>
+                                    <div class="cat-card-header">
+                                        <div class="cat-icon-wrap">💳</div>
+                                        <span class="cat-badge bg-success-subtle text-success border border-success-subtle">@Model.SubscriptionPlan Tier</span>
+                                    </div>
+                                    <h2 class="cat-card-title">Subscription &amp; Packages</h2>
+                                    <p class="cat-card-desc">Upgrade your package, unlock Platform API for custom dashboards, and expand project &amp; member limits.</p>
+                                </div>
+                                <div class="cat-card-footer">
+                                    <span>Upgrade &amp; Unlock Features</span>
+                                    <span>Open Settings &rarr;</span>
+                                </div>
+                            </a>
+
+                            <!-- Card 4: Admin Profile & Security -->
+                            <a class="cat-card" href="/organization/settings/profile">
+                                <div>
+                                    <div class="cat-card-header">
+                                        <div class="cat-icon-wrap">👤</div>
+                                        <span class="cat-badge bg-light text-dark border">@Model.UserRole</span>
+                                    </div>
+                                    <h2 class="cat-card-title">Admin Profile &amp; Security</h2>
+                                    <p class="cat-card-desc">Personal administrator details, account email address, and account password security.</p>
+                                </div>
+                                <div class="cat-card-footer">
+                                    <span>@Model.UserName</span>
+                                    <span>Open Settings &rarr;</span>
+                                </div>
+                            </a>
+
+                        </div>
+
+                        <!-- Workspace Summary Stats Banner -->
+                        <div class="p-4 bg-white border rounded-3 shadow-sm">
+                            <h3 class="h6 fw-bold mb-3 text-secondary text-uppercase">Workspace Summary &amp; Health</h3>
+                            <div class="row g-3">
+                                <div class="col-md-3">
+                                    <div class="p-3 bg-light rounded border">
+                                        <div class="text-muted small fw-bold">WORKSPACE SLUG</div>
+                                        <div class="font-monospace fw-bold text-dark text-truncate">@Model.OrganizationSlug</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="p-3 bg-light rounded border">
+                                        <div class="text-muted small fw-bold">ACTIVE SUBSCRIPTION</div>
+                                        <div class="fw-bold text-success">@Model.SubscriptionPlan Tier</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="p-3 bg-light rounded border">
+                                        <div class="text-muted small fw-bold">CUSTOM DASHBOARD API</div>
+                                        <div class="fw-bold @(Model.IsProOrCustomPlan || Model.HasApiAccess ? "text-success" : "text-muted")">
+                                            @(Model.IsProOrCustomPlan || Model.HasApiAccess ? "Active ✓" : "Locked (Pro/Custom)")
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="p-3 bg-light rounded border">
+                                        <div class="text-muted small fw-bold">ADMINISTRATOR</div>
+                                        <div class="fw-bold text-dark text-truncate">@Model.UserEmail</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <!-- ========================================== -->
+                        <!-- 2. DEDICATED SETTINGS CATEGORY DETAIL PAGE -->
+                        <!-- ========================================== -->
+
+                        @if (activeCategory == "workspace")
+                        {
+                            <!-- DEDICATED PAGE: WORKSPACE PROFILE -->
+                            <section class="settings-card">
+                                <div class="settings-card-header">
+                                    <div>
+                                        <h1 class="settings-card-title">🏢 Workspace Identity &amp; Profile</h1>
+                                        <p class="settings-card-desc">Configure the public identity, branding, contact email, and custom API routing for <strong>@(organization?.Name ?? "Workspace")</strong>.</p>
+                                    </div>
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2">Active Organization</span>
+                                </div>
+
+                                @if (Model.CanManageOrganization && organization is not null)
+                                {
+                                    <form method="post" action="/organization/account/organization-profile">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="organizationId" value="@organization.Id" />
+
+                                        <div class="row g-3">
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-bold small" asp-for="OrganizationName">Organization / Company Name</label>
+                                                <input asp-for="OrganizationName" class="form-control" required placeholder="e.g. Acme Corp" />
+                                                <span asp-validation-for="OrganizationName" class="text-danger small"></span>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-bold small" asp-for="OrganizationEmail">Primary Contact Email</label>
+                                                <input asp-for="OrganizationEmail" class="form-control" type="email" required placeholder="contact@company.com" />
+                                                <span asp-validation-for="OrganizationEmail" class="text-danger small"></span>
+                                                <div class="form-text" style="font-size: 11px;">Receives workspace notices, invoices, and developer alerts.</div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-bold small">Workspace Unique Slug</label>
+                                                <input class="form-control font-monospace bg-light" value="@Model.OrganizationSlug" readonly disabled />
+                                                <div class="form-text" style="font-size: 11px;">Permanent workspace identifier used for tenant subdomain routing and API paths.</div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-bold small" asp-for="OrganizationBaseApiUrl">Custom API Base URL (Optional)</label>
+                                                <input asp-for="OrganizationBaseApiUrl" class="form-control" placeholder="https://api.yourdomain.com" />
+                                                <span asp-validation-for="OrganizationBaseApiUrl" class="text-danger small"></span>
+                                                <div class="form-text" style="font-size: 11px;">Custom domain proxy for your deployed backend microservices.</div>
+                                            </div>
+                                        </div>
+
+                                        <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
+                                            <a href="/organization/settings" class="btn btn-outline-secondary">← Back to Settings</a>
+                                            <button type="submit" class="btn btn-success px-4">💾 Save Workspace Profile</button>
+                                        </div>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <div class="alert alert-light border text-muted">
+                                        <strong>View Only:</strong> You are currently signed in as <strong>@Model.UserRole</strong>. Only Organization Owners and Administrators can modify workspace profile settings.
+                                    </div>
+                                }
+                            </section>
+                        }
+                        else if (activeCategory == "api")
+                        {
+                            <!-- DEDICATED PAGE: PLATFORM API & CUSTOM DASHBOARD -->
+                            <div class="settings-card">
+                                <div class="settings-card-header">
+                                    <div>
+                                        <h1 class="settings-card-title">⚡ CloudHubs Platform REST API &amp; Custom Dashboard</h1>
+                                        <p class="settings-card-desc">Programmatic REST API provided by CloudHubs to query workspace hubs, projects, team members, and live documentation. Build your own external company dashboard or internal tooling.</p>
+                                    </div>
+                                    @if (Model.IsProOrCustomPlan || Model.HasApiAccess)
+                                    {
+                                        <span class="badge bg-success px-3 py-2">✓ API Access Active (@Model.SubscriptionPlan)</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-warning text-dark px-3 py-2">🔒 Pro / Custom Plan Required</span>
+                                    }
+                                </div>
+
+                                @if (!Model.IsProOrCustomPlan && !Model.HasApiAccess)
+                                {
+                                    <div class="alert alert-warning d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4">
+                                        <div>
+                                            <strong>🔒 Pro Feature:</strong> The Organization Platform API is reserved for organizations on a <strong>Pro</strong> or <strong>Custom</strong> plan.
+                                        </div>
+                                        <form method="post" action="/organization/settings/upgrade-plan" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="planName" value="Pro" />
+                                            <button type="submit" class="btn btn-sm btn-dark">🚀 Instant Upgrade to Pro ($49/mo) &amp; Unlock API</button>
+                                        </form>
+                                    </div>
+                                }
+
+                                <!-- Master Organization API Key Card -->
+                                <div class="p-3 bg-light rounded border mb-4">
+                                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                                        <div class="fw-bold small text-uppercase text-secondary">MASTER ORGANIZATION API KEY</div>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <button type="button" class="btn btn-sm btn-outline-secondary py-1" onclick="toggleApiKeyVisibility()" id="btn-toggle-key">👁️ Show Key</button>
+                                            <button type="button" class="btn btn-sm btn-outline-primary py-1" onclick="copyMasterKey()" id="btn-copy-key">📋 Copy Key</button>
+                                        </div>
+                                    </div>
+                                    <div class="api-key-box mb-2">
+                                        <span id="api-key-display" class="api-key-masked">
+                                            @(string.IsNullOrWhiteSpace(Model.OrganizationApiKey) ? "No API key generated yet" : "••••••••••••••••••••••••••••••••••••••••••••")
+                                        </span>
+                                        <span id="api-key-real" style="display: none;">@Model.OrganizationApiKey</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                        <small class="text-muted" style="font-size: 11px;">Authenticate requests with <code>X-Api-Key: &lt;key&gt;</code> or <code>Authorization: Bearer &lt;key&gt;</code> header.</small>
+                                        @if (organization is not null)
+                                        {
+                                            <form method="post" action="/organization/account/regenerate-api-key" onsubmit="return confirm('Regenerating this key will invalidate any active runners or custom dashboards using the old key. Proceed?');" class="d-inline">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="organizationId" value="@organization.Id" />
+                                                <button type="submit" class="btn btn-link text-danger btn-sm p-0 text-decoration-none">🔄 Regenerate API Key</button>
+                                            </form>
+                                        }
+                                    </div>
+                                </div>
+
+                                <!-- Platform Base URL -->
+                                <div class="mb-4">
+                                    <label class="form-label fw-bold small">PLATFORM BASE API ENDPOINT</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light font-monospace small">BASE URL</span>
+                                        <input class="form-control font-monospace bg-white" id="platform-base-url" value="@($"{Context.Request.Scheme}://{Context.Request.Host}/api/organizations/{organization?.Id}")" readonly />
+                                        <button class="btn btn-outline-secondary" type="button" onclick="copyBaseUrl()" id="btn-copy-base">Copy</button>
+                                    </div>
+                                </div>
+
+                                <!-- Direct Action Cards: Docs Hub & Move to Docs -->
+                                <div class="row g-3 mb-4">
+                                    <div class="col-md-6">
+                                        <div class="border rounded p-3 h-100 bg-white d-flex flex-column justify-content-between shadow-sm">
+                                            <div>
+                                                <h3 class="h6 fw-bold mb-1 text-primary">⚡ View Organization API Hub (Docs)</h3>
+                                                <p class="text-muted small mb-3">Browse all 11 endpoints with interactive live parameter schemas, sample response payloads, and dashboard starter code.</p>
+                                            </div>
+                                            <div>
+                                                <a class="btn btn-primary btn-sm w-100" href="/organization/docs/api-hub">
+                                                    ⚡ Open Organization API Hub &rarr;
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="border rounded p-3 h-100 bg-white d-flex flex-column justify-content-between shadow-sm">
+                                            <div>
+                                                <h3 class="h6 fw-bold mb-1 text-success">📖 Move to Docs &amp; Set Member Access</h3>
+                                                <p class="text-muted small mb-3">Import this Platform API directly into your workspace Docs catalog and specify which team members can view it.</p>
+                                            </div>
+                                            <div>
+                                                <form method="post" action="/organization/docs/import-platform-api-to-docs">
+                                                    @Html.AntiForgeryToken()
+                                                    <button type="submit" class="btn btn-outline-success btn-sm w-100" title="Move to Docs and configure member permissions">
+                                                        📖 Move to Docs &amp; Set Member Access &rarr;
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex align-items-center gap-2">
+                                    <a class="btn btn-outline-secondary btn-sm" href="/organization/docs/download-org-postman">
+                                        🚀 Download Postman Collection (.json)
+                                    </a>
+                                </div>
+                            </div>
+
+                            <!-- Integration Code Examples -->
+                            <section class="settings-card">
+                                <div class="settings-card-header">
+                                    <div>
+                                        <h2 class="settings-card-title">💻 Quick Integration Snippets</h2>
+                                        <p class="settings-card-desc">Call your organization endpoints from your own frontend or backend applications.</p>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <div class="fw-bold small text-muted mb-2">cURL: Fetch Organization Dashboard Metrics</div>
+                                    <div class="code-preview-block">
+                                        <button class="btn btn-sm btn-outline-light btn-copy-code" onclick="copySnippet('snippet-curl')">Copy</button>
+                                        <pre id="snippet-curl" class="m-0 text-white"><code>curl -X GET "@($"{Context.Request.Scheme}://{Context.Request.Host}/api/organizations/{organization?.Id}/overview")" \
+  -H "X-Api-Key: @(Model.OrganizationApiKey ?? "YOUR_API_KEY")" \
+  -H "Accept: application/json"</code></pre>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <div class="fw-bold small text-muted mb-2">JavaScript / React (Fetch API): Custom Dashboard Hook</div>
+                                    <div class="code-preview-block">
+                                        <button class="btn btn-sm btn-outline-light btn-copy-code" onclick="copySnippet('snippet-js')">Copy</button>
+                                        <pre id="snippet-js" class="m-0 text-white"><code>const fetchOrgMetrics = async () => {
+  const res = await fetch("@($"{Context.Request.Scheme}://{Context.Request.Host}/api/organizations/{organization?.Id}/overview")", {
+    headers: {
+      "X-Api-Key": "@(Model.OrganizationApiKey ?? "YOUR_API_KEY")",
+      "Accept": "application/json"
+    }
+  });
+  const data = await res.json();
+  console.log("Projects:", data.projectsCount, "Members:", data.membersCount);
+  return data;
+};</code></pre>
+                                    </div>
+                                </div>
+                            </section>
+                        }
+                        else if (activeCategory == "subscription")
+                        {
+                            <!-- DEDICATED PAGE: SUBSCRIPTION & PACKAGES -->
+                            <section class="settings-card">
+                                <div class="settings-card-header">
+                                    <div>
+                                        <h1 class="settings-card-title">💳 Subscription Packages &amp; Feature Unlocks</h1>
+                                        <p class="settings-card-desc">Upgrade your subscription package to unlock higher project limits, team member seats, and the full <strong>Organization Platform API</strong> for custom dashboards.</p>
+                                    </div>
+                                    <span class="badge bg-success px-3 py-2">Current: @Model.SubscriptionPlan Tier</span>
+                                </div>
+
+                                <!-- Current Subscription Summary -->
+                                <div class="row g-3 mb-4">
+                                    <div class="col-md-4">
+                                        <div class="p-3 bg-light rounded border">
+                                            <div class="text-muted small text-uppercase fw-bold">Active Package</div>
+                                            <div class="h4 fw-bold mb-1 text-dark">@Model.SubscriptionPlan</div>
+                                            <small class="text-success">Active &amp; In Good Standing</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="p-3 bg-light rounded border">
+                                            <div class="text-muted small text-uppercase fw-bold">Platform REST API Status</div>
+                                            <div class="h4 fw-bold mb-1 @(Model.IsProOrCustomPlan || Model.HasApiAccess ? "text-success" : "text-muted")">
+                                                @(Model.IsProOrCustomPlan || Model.HasApiAccess ? "🔓 Unlocked ✓" : "🔒 Locked")
+                                            </div>
+                                            <small class="text-muted">Custom dashboard integration</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="p-3 bg-light rounded border">
+                                            <div class="text-muted small text-uppercase fw-bold">Renewal / Status</div>
+                                            <div class="h5 fw-bold mb-1 text-dark">@(Model.SubscriptionExpiresAt?.ToString("MMMM dd, yyyy") ?? "Active (Continuous)")</div>
+                                            <small class="text-muted">Managed via workspace account</small>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- AVAILABLE PACKAGES (UPGRADE CARDS) -->
+                                <h2 class="h6 fw-bold mb-3 text-secondary text-uppercase">Upgrade Your Package Tier</h2>
+                                
+                                <div class="package-tier-grid">
+                                    
+                                    <!-- PACKAGE 1: BASIC -->
+                                    <div class="package-tier-card @(Model.SubscriptionPlan.Equals("Basic", StringComparison.OrdinalIgnoreCase) ? "current" : "")">
+                                        <div>
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <h3 class="h5 fw-bold mb-0">Basic Package</h3>
+                                                @if (Model.SubscriptionPlan.Equals("Basic", StringComparison.OrdinalIgnoreCase))
+                                                {
+                                                    <span class="badge bg-secondary">Current Plan</span>
+                                                }
+                                            </div>
+                                            <div class="package-price">
+                                                $0 <small>/ month</small>
+                                            </div>
+                                            <p class="text-muted small mb-3">Foundational package for solo developers and small initial tests.</p>
+
+                                            <div class="mb-4">
+                                                <div class="feature-item">
+                                                    <span class="feature-icon-unlocked">✓</span>
+                                                    <span>Up to <strong>10 Projects</strong></span>
+                                                </div>
+                                                <div class="feature-item">
+                                                    <span class="feature-icon-unlocked">✓</span>
+                                                    <span>Up to <strong>10 Team Members</strong></span>
+                                                </div>
+                                                <div class="feature-item">
+                                                    <span class="feature-icon-unlocked">✓</span>
+                                                    <span>Standard Markdown Documentation</span>
+                                                </div>
+                                                <div class="feature-item text-muted">
+                                                    <span class="feature-icon-locked">✕</span>
+                                                    <span>Platform REST API (Custom Dashboard)</span>
+                                                </div>
+                                                <div class="feature-item text-muted">
+                                                    <span class="feature-icon-locked">✕</span>
+                                                    <span>Granular Member Access Controls</span>
+                                                </div>
+                                                <div class="feature-item text-muted">
+                                                    <span class="feature-icon-locked">✕</span>
+                                                    <span>Single Sign-On (SSO)</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            @if (Model.SubscriptionPlan.Equals("Basic", StringComparison.OrdinalIgnoreCase))
+                                            {
+                                                <button class="btn btn-outline-secondary btn-sm w-100" disabled>✓ Current Plan</button>
+                                            }
+                                            else
+                                            {
+                                                <form method="post" action="/organization/settings/upgrade-plan" onsubmit="return confirm('Downgrading to Basic will revoke Platform API access. Continue?');">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="planName" value="Basic" />
+                                                    <button type="submit" class="btn btn-outline-secondary btn-sm w-100">Downgrade to Basic</button>
+                                                </form>
+                                            }
+                                        </div>
+                                    </div>
+
+                                    <!-- PACKAGE 2: PRO (FEATURED & UNLOCKS API) -->
+                                    <div class="package-tier-card featured @(Model.SubscriptionPlan.Equals("Pro", StringComparison.OrdinalIgnoreCase) ? "current" : "")">
+                                        <div class="package-tag">Most Popular &middot; Unlocks API</div>
+                                        <div>
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <h3 class="h5 fw-bold mb-0 text-success">Pro Package</h3>
+                                                @if (Model.SubscriptionPlan.Equals("Pro", StringComparison.OrdinalIgnoreCase))
+                                                {
+                                                    <span class="badge bg-success">Active Plan</span>
+                                                }
+                                            </div>
+                                            <div class="package-price text-success">
+                                                $49 <small>/ month</small>
+                                            </div>
+                                            <p class="text-muted small mb-3">Designed for growing teams needing custom dashboard APIs and team controls.</p>
+
+                                            <div class="mb-4">
+                                                <div class="feature-item fw-bold text-success">
+                                                    <span class="feature-icon-unlocked">⚡</span>
+                                                    <span>UNLOCKS: Platform REST API (Custom Dashboard)</span>
+                                                </div>
+                                                <div class="feature-item fw-bold text-success">
+                                                    <span class="feature-icon-unlocked">⚡</span>
+                                                    <span>UNLOCKS: Granular Member Doc Access Controls</span>
+                                                </div>
+                                                <div class="feature-item">
+                                                    <span class="feature-icon-unlocked">✓</span>
+                                                    <span>Up to <strong>25 Projects</strong></span>
+                                                </div>
+                                                <div class="feature-item">
+                                                    <span class="feature-icon-unlocked">✓</span>
+                                                    <span>Up to <strong>50 Team Members</strong></span>
+                                                </div>
+                                                <div class="feature-item">
+                                                    <span class="feature-icon-unlocked">✓</span>
+                                                    <span><strong>100 GB</strong> Cloud Hub Storage</span>
+                                                </div>
+                                                <div class="feature-item">
+                                                    <span class="feature-icon-unlocked">✓</span>
+                                                    <span>Postman &amp; Bruno Import/Export</span>
+                                                </div>
+                                                <div class="feature-item text-muted">
+                                                    <span class="feature-icon-locked">✕</span>
+                                                    <span>Single Sign-On (SSO)</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            @if (Model.SubscriptionPlan.Equals("Pro", StringComparison.OrdinalIgnoreCase))
+                                            {
+                                                <button class="btn btn-success btn-sm w-100" disabled>✓ Active Plan</button>
+                                            }
+                                            else
+                                            {
+                                                <form method="post" action="/organization/settings/upgrade-plan">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="planName" value="Pro" />
+                                                    <button type="submit" class="btn btn-success btn-sm w-100 fw-bold py-2">
+                                                        🚀 Upgrade to Pro ($49/mo) &amp; Unlock Features
+                                                    </button>
+                                                </form>
+                                            }
+                                        </div>
+                                    </div>
+
+                                    <!-- PACKAGE 3: CUSTOM / ENTERPRISE -->
+                                    <div class="package-tier-card @(Model.SubscriptionPlan.Equals("Custom", StringComparison.OrdinalIgnoreCase) ? "current featured" : "")">
+                                        <div>
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <h3 class="h5 fw-bold mb-0 text-primary">Enterprise / Custom</h3>
+                                                @if (Model.SubscriptionPlan.Equals("Custom", StringComparison.OrdinalIgnoreCase))
+                                                {
+                                                    <span class="badge bg-primary">Active Plan</span>
+                                                }
+                                            </div>
+                                            <div class="package-price text-primary">
+                                                $199 <small>/ month</small>
+                                            </div>
+                                            <p class="text-muted small mb-3">Enterprise scale with maximum capacity, dedicated SLA, and SSO.</p>
+
+                                            <div class="mb-4">
+                                                <div class="feature-item fw-bold text-primary">
+                                                    <span class="feature-icon-unlocked">⚡</span>
+                                                    <span>Everything in Pro Included</span>
+                                                </div>
+                                                <div class="feature-item fw-bold text-primary">
+                                                    <span class="feature-icon-unlocked">⚡</span>
+                                                    <span>Single Sign-On (SAML, Okta, Google)</span>
+                                                </div>
+                                                <div class="feature-item">
+                                                    <span class="feature-icon-unlocked">✓</span>
+                                                    <span>Up to <strong>100 Projects</strong></span>
+                                                </div>
+                                                <div class="feature-item">
+                                                    <span class="feature-icon-unlocked">✓</span>
+                                                    <span>Up to <strong>200 Team Members</strong></span>
+                                                </div>
+                                                <div class="feature-item">
+                                                    <span class="feature-icon-unlocked">✓</span>
+                                                    <span><strong>500 GB</strong> Cloud Storage</span>
+                                                </div>
+                                                <div class="feature-item">
+                                                    <span class="feature-icon-unlocked">✓</span>
+                                                    <span>Dedicated 1-Hour SLA Support</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            @if (Model.SubscriptionPlan.Equals("Custom", StringComparison.OrdinalIgnoreCase))
+                                            {
+                                                <button class="btn btn-primary btn-sm w-100" disabled>✓ Active Plan</button>
+                                            }
+                                            else
+                                            {
+                                                <form method="post" action="/organization/settings/upgrade-plan">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="planName" value="Custom" />
+                                                    <button type="submit" class="btn btn-primary btn-sm w-100 fw-bold py-2">
+                                                        ⚡ Upgrade to Enterprise ($199/mo)
+                                                    </button>
+                                                </form>
+                                            }
+                                        </div>
+                                    </div>
+
+                                </div>
+
+                                <!-- FEATURE UNLOCK COMPARISON MATRIX -->
+                                <h2 class="h6 fw-bold mb-3 text-secondary text-uppercase">Package Feature Unlock Matrix</h2>
+                                <div class="table-responsive mb-4">
+                                    <table class="unlock-matrix-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Feature / Capability</th>
+                                                <th style="width: 22%;">Basic ($0)</th>
+                                                <th style="width: 24%;" class="text-success">Pro ($49/mo)</th>
+                                                <th style="width: 24%;" class="text-primary">Enterprise ($199/mo)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td><strong>⚡ Organization Platform REST API (Custom Dashboard)</strong></td>
+                                                <td><span class="text-muted">🔒 Locked</span></td>
+                                                <td><span class="badge bg-success">🔓 UNLOCKED</span></td>
+                                                <td><span class="badge bg-primary">🔓 UNLOCKED</span></td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>🔒 Member-Specific Documentation Access Control</strong></td>
+                                                <td><span class="text-muted">🔒 All Members Only</span></td>
+                                                <td><span class="badge bg-success">🔓 Granular Pick Members</span></td>
+                                                <td><span class="badge bg-primary">🔓 Granular Pick Members</span></td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>📁 Postman (.json) &amp; Bruno (.bru) File Importer</strong></td>
+                                                <td><span class="text-muted">Standard</span></td>
+                                                <td><span class="text-success fw-bold">✓ Full Support</span></td>
+                                                <td><span class="text-primary fw-bold">✓ Full Support</span></td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Max Projects Limit</strong></td>
+                                                <td>10 Projects</td>
+                                                <td><strong>25 Projects</strong></td>
+                                                <td><strong>100 Projects</strong></td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Max Team Members Limit</strong></td>
+                                                <td>10 Members</td>
+                                                <td><strong>50 Members</strong></td>
+                                                <td><strong>200 Members</strong></td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Dedicated Storage Quota</strong></td>
+                                                <td>5 GB</td>
+                                                <td><strong>100 GB</strong></td>
+                                                <td><strong>500 GB</strong></td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Single Sign-On (SSO / SAML)</strong></td>
+                                                <td><span class="text-muted">🔒 Not Included</span></td>
+                                                <td><span class="text-muted">🔒 Not Included</span></td>
+                                                <td><span class="badge bg-primary">🔓 UNLOCKED</span></td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Support Response Time SLA</strong></td>
+                                                <td>Community</td>
+                                                <td>12 Hours Priority</td>
+                                                <td><strong>1 Hour Dedicated</strong></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <!-- Custom Enterprise Request Note -->
+                                <div class="border rounded p-3 bg-light">
+                                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                        <div>
+                                            <h4 class="h6 fw-bold mb-1">Need a custom contract or tailored API limits?</h4>
+                                            <p class="text-muted small mb-0">Contact our solutions architects for custom quotas, volume pricing, and private runners.</p>
+                                        </div>
+                                        <form method="post" action="/organization/docs/request-api-access" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="useCase" value="Request custom contract / high API limits" />
+                                            <button type="submit" class="btn btn-outline-secondary btn-sm">Contact Support &rarr;</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </section>
+                        }
+                        else if (activeCategory == "profile")
+                        {
+                            <!-- DEDICATED PAGE: ADMIN PROFILE & SECURITY -->
+                            <div class="row g-4">
+                                <!-- Personal User Details -->
+                                <div class="col-lg-6">
+                                    <section class="settings-card h-100">
+                                        <div class="settings-card-header">
+                                            <div>
+                                                <h1 class="settings-card-title">👤 Administrator Profile</h1>
+                                                <p class="settings-card-desc">Personal profile details associated with your user identity.</p>
+                                            </div>
+                                            <span class="badge bg-light text-dark border">Member: @Model.MemberId</span>
+                                        </div>
+
+                                        <form method="post" action="/organization/account/user-profile">
+                                            @Html.AntiForgeryToken()
+                                            <div class="mb-3">
+                                                <label class="form-label fw-bold small" asp-for="ProfileName">Full Name</label>
+                                                <input asp-for="ProfileName" class="form-control" required />
+                                                <span asp-validation-for="ProfileName" class="text-danger small"></span>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label fw-bold small" asp-for="ProfileEmail">Account Email Address</label>
+                                                <input asp-for="ProfileEmail" class="form-control" type="email" required />
+                                                <span asp-validation-for="ProfileEmail" class="text-danger small"></span>
+                                                <div class="form-text" style="font-size: 11px;">Primary email for logging into your account across organizations.</div>
+                                            </div>
+                                            <div class="d-flex justify-content-end mt-4 pt-3 border-top">
+                                                <button type="submit" class="btn btn-success px-4">Save Profile Changes</button>
+                                            </div>
+                                        </form>
+                                    </section>
+                                </div>
+
+                                <!-- Security & Password -->
+                                <div class="col-lg-6">
+                                    <section class="settings-card h-100">
+                                        <div class="settings-card-header">
+                                            <div>
+                                                <h2 class="settings-card-title">🔒 Security &amp; Password</h2>
+                                                <p class="settings-card-desc">Update your password to keep your administrator account secure.</p>
+                                            </div>
+                                        </div>
+
+                                        <form method="post" action="/organization/account/change-password">
+                                            @Html.AntiForgeryToken()
+                                            <div class="mb-3">
+                                                <label class="form-label fw-bold small" asp-for="CurrentPassword">Current Password</label>
+                                                <input asp-for="CurrentPassword" class="form-control" type="password" required autocomplete="current-password" />
+                                                <span asp-validation-for="CurrentPassword" class="text-danger small"></span>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label fw-bold small" asp-for="NewPassword">New Password</label>
+                                                <input asp-for="NewPassword" class="form-control" type="password" required autocomplete="new-password" />
+                                                <span asp-validation-for="NewPassword" class="text-danger small"></span>
+                                                <div class="form-text" style="font-size: 11px;">Must be at least 8 characters long with numbers and letters.</div>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label fw-bold small" asp-for="ConfirmNewPassword">Confirm New Password</label>
+                                                <input asp-for="ConfirmNewPassword" class="form-control" type="password" required autocomplete="new-password" />
+                                                <span asp-validation-for="ConfirmNewPassword" class="text-danger small"></span>
+                                            </div>
+                                            <div class="d-flex justify-content-end mt-4 pt-3 border-top">
+                                                <button type="submit" class="btn btn-outline-dark px-4">Update Password</button>
+                                            </div>
+                                        </form>
+                                    </section>
+                                </div>
+                            </div>
+                        }
+                    }
+
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="~/lib/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/portal.js"></script>
+    <script>
+        // API Key Visibility Toggle
+        var isKeyVisible = false;
+        function toggleApiKeyVisibility() {
+            var display = document.getElementById('api-key-display');
+            var real = document.getElementById('api-key-real') ? document.getElementById('api-key-real').innerText.trim() : '';
+            var btn = document.getElementById('btn-toggle-key');
+            if (!real) return;
+
+            if (isKeyVisible) {
+                display.innerText = '••••••••••••••••••••••••••••••••••••••••••••';
+                display.classList.add('api-key-masked');
+                btn.innerText = '👁️ Show Key';
+                isKeyVisible = false;
+            } else {
+                display.innerText = real;
+                display.classList.remove('api-key-masked');
+                btn.innerText = '🙈 Hide Key';
+                isKeyVisible = true;
+            }
+        }
+
+        // Copy Master API Key
+        function copyMasterKey() {
+            var real = document.getElementById('api-key-real') ? document.getElementById('api-key-real').innerText.trim() : '';
+            if (real) {
+                navigator.clipboard.writeText(real).then(function() {
+                    var btn = document.getElementById('btn-copy-key');
+                    var orig = btn.innerText;
+                    btn.innerText = '✓ Copied!';
+                    setTimeout(function() { btn.innerText = orig; }, 1600);
+                });
+            }
+        }
+
+        // Copy Base URL
+        function copyBaseUrl() {
+            var input = document.getElementById('platform-base-url');
+            if (input && input.value) {
+                navigator.clipboard.writeText(input.value).then(function() {
+                    var btn = document.getElementById('btn-copy-base');
+                    var orig = btn.innerText;
+                    btn.innerText = '✓ Copied!';
+                    setTimeout(function() { btn.innerText = orig; }, 1600);
+                });
+            }
+        }
+
+        // Copy Code Snippets
+        function copySnippet(elementId) {
+            var el = document.getElementById(elementId);
+            if (el) {
+                navigator.clipboard.writeText(el.innerText).then(function() {
+                    alert('Code snippet copied to clipboard!');
+                });
+            }
+        }
+    </script>
+</body>
+</html>

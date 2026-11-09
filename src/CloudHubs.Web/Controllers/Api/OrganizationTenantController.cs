@@ -3,21 +3,156 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using CloudHubs.Application.Modules.Docs.Interfaces;
 using CloudHubs.Application.Modules.Organizations.DTOs;
+using CloudHubs.Application.Modules.Organizations.Interfaces;
 using CloudHubs.Application.Modules.Organizations.Services;
 using CloudHubs.Application.Modules.Projects.DTOs;
 using CloudHubs.Domain.Entities;
 using CloudHubs.Domain.Enums;
+using CloudHubs.Web.Security;
 
 namespace CloudHubs.Web.Controllers.Api;
 
 [ApiController]
 [Route("api/organizations/{organizationId:guid}")]
-[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "OrganizationMember")]
+[Authorize(AuthenticationSchemes = $"{JwtBearerDefaults.AuthenticationScheme},{ApiKeyDefaults.AuthenticationScheme}", Roles = "OrganizationMember")]
 public class OrganizationTenantController(
     OrganizationTenantService tenantService,
+    IDocsService docsService,
+    IOrganizationRepository organizationRepository,
     ILogger<OrganizationTenantController> logger) : ControllerBase
 {
+    [HttpGet("overview")]
+    public async Task<IActionResult> GetOverview(Guid organizationId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var userId = GetUserId();
+            var organization = await organizationRepository.GetByIdAsync(organizationId, cancellationToken);
+            if (organization is null) return NotFound();
+
+            var plan = organization.AccountSubscription?.Plan ?? organization.Subscription?.Plan;
+            var projects = await tenantService.GetProjectsAsync(organizationId, userId, cancellationToken);
+            var members = await tenantService.GetMembersAsync(organizationId, userId, cancellationToken);
+            var docs = await docsService.GetDocsAsync(organizationId, userId, cancellationToken);
+
+            return Ok(new
+            {
+                organizationId = organization.Id,
+                name = organization.Name,
+                slug = organization.Slug,
+                email = organization.Email,
+                status = organization.Status.ToString(),
+                plan = new
+                {
+                    name = plan?.Name ?? "Basic",
+                    hasApiAccess = plan?.HasApiAccess ?? false,
+                    maxProjects = plan?.MaxProjects ?? 10,
+                    maxMembers = plan?.MaxMembers ?? 20,
+                    storageLimitGb = plan?.StorageLimitGb ?? 10
+                },
+                metrics = new
+                {
+                    projectsCount = projects.Count,
+                    membersCount = members.Count,
+                    docsCount = docs.Count
+                },
+                createdAt = organization.CreatedAt,
+                updatedAt = organization.UpdatedAt
+            });
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            return HandleFailure(exception, "Unable to load organization overview.", organizationId);
+        }
+    }
+
+    [HttpGet("docs")]
+    public async Task<IActionResult> GetDocs(Guid organizationId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var docs = await docsService.GetDocsAsync(organizationId, GetUserId(), cancellationToken);
+            return Ok(docs.Select(d => new
+            {
+                id = d.Id,
+                title = d.Title,
+                slug = d.Slug,
+                category = d.Category,
+                description = d.Description,
+                baseUrl = d.BaseUrl,
+                hasLiveApiKey = !string.IsNullOrWhiteSpace(d.ApiKey),
+                hasTestApiKey = !string.IsNullOrWhiteSpace(d.TestApiKey),
+                hasSecretKey = !string.IsNullOrWhiteSpace(d.SecretKey),
+                hasPostmanCollection = !string.IsNullOrWhiteSpace(d.PostmanCollection),
+                hasEnvironmentVariables = !string.IsNullOrWhiteSpace(d.EnvironmentVariables),
+                projectId = d.ProjectId,
+                createdAt = d.CreatedAt,
+                updatedAt = d.UpdatedAt
+            }));
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            return HandleFailure(exception, "Unable to load documentation profiles.", organizationId);
+        }
+    }
+
+    [HttpGet("docs/{docId:guid}")]
+    public async Task<IActionResult> GetDocDetails(Guid organizationId, Guid docId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var doc = await docsService.GetDocByIdAsync(organizationId, docId, GetUserId(), cancellationToken);
+            if (doc is null) return NotFound();
+
+            return Ok(new
+            {
+                id = doc.Id,
+                title = doc.Title,
+                slug = doc.Slug,
+                category = doc.Category,
+                description = doc.Description,
+                baseUrl = doc.BaseUrl,
+                apiKey = doc.ApiKey,
+                testApiKey = doc.TestApiKey,
+                secretKey = doc.SecretKey,
+                content = doc.Content,
+                environmentVariables = doc.EnvironmentVariables,
+                postmanCollection = doc.PostmanCollection,
+                projectId = doc.ProjectId,
+                createdAt = doc.CreatedAt,
+                updatedAt = doc.UpdatedAt
+            });
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            return HandleFailure(exception, "Unable to load documentation profile details.", organizationId);
+        }
+    }
+
+    [HttpGet("resources")]
+    public async Task<IActionResult> GetResources(Guid organizationId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var projects = await tenantService.GetProjectsAsync(organizationId, GetUserId(), cancellationToken);
+            return Ok(projects.Select(p => new
+            {
+                projectId = p.Id,
+                projectName = p.Name,
+                slug = p.Slug,
+                templateId = p.TemplateId,
+                rootPath = p.RootPath,
+                isActive = p.IsActive,
+                createdAt = p.CreatedAt
+            }));
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            return HandleFailure(exception, "Unable to load organization project resources.", organizationId);
+        }
+    }
     [HttpGet("projects")]
     public async Task<IActionResult> GetProjects(Guid organizationId, CancellationToken cancellationToken)
     {

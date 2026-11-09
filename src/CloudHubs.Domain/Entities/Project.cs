@@ -11,4 +11,7 @@ public class Project : AuditableEntity
     public string RootPath { get; set; } = string.Empty;
     public string TemplateId { get; set; } = string.Empty;
     public bool IsActive { get; set; } = true;
+    public string? Documentation { get; set; }
+    public string? PostmanCollection { get; set; }
+    public string? EnvironmentVariables { get; set; }
 }

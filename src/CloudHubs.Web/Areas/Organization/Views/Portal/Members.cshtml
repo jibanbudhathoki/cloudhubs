@@ -22,10 +22,65 @@
                 <span><strong>CloudHubs</strong><small>ORGANIZATION</small></span>
             </a>
             <p class="role-label">CURRENT ORGANIZATION</p>
-            <div class="role-switch">
-                <span class="tenant-mark">@organization.Name[..Math.Min(organization.Name.Length, 2)].ToUpperInvariant()</span>
-                <span><strong>@organization.Name</strong><small>@organization.Role</small></span>
-            </div>
+            @if (Model.Organizations.Count > 1 || Model.CanShowOrganizationAction)
+            {
+                <details class="workspace-top-dropdown">
+                    <summary class="role-switch workspace-top-trigger" title="Click to switch workspace">
+                        <span class="tenant-mark">@organization.Name[..Math.Min(organization.Name.Length, 2)].ToUpperInvariant()</span>
+                        <span class="workspace-meta">
+                            <strong>@organization.Name</strong>
+                            <small>@organization.Role</small>
+                        </span>
+                        <span class="workspace-switch-badge">Switch ▾</span>
+                    </summary>
+                    <div class="workspace-top-menu">
+                        <div class="workspace-menu-label">CURRENT WORKSPACE</div>
+                        <div class="workspace-menu-item current">
+                            <span class="tenant-mark-sm">@organization.Name[..Math.Min(organization.Name.Length, 2)].ToUpperInvariant()</span>
+                            <span class="workspace-menu-name">@organization.Name</span>
+                            <span class="workspace-check">✓</span>
+                        </div>
+                        @if (Model.Organizations.Count > 1)
+                        {
+                            <div class="workspace-menu-divider"></div>
+                            <div class="workspace-menu-label">SWITCH WORKSPACE</div>
+                            @foreach (var workspace in Model.Organizations.Where(item => item.Id != organization.Id))
+                            {
+                                <form method="post" action="/organization/select" class="workspace-menu-form">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="organizationId" value="@workspace.Id" />
+                                    <button class="workspace-menu-item" type="submit">
+                                        <span class="tenant-mark-sm">@workspace.Name[..Math.Min(workspace.Name.Length, 2)].ToUpperInvariant()</span>
+                                        <span class="workspace-menu-name">@workspace.Name</span>
+                                    </button>
+                                </form>
+                            }
+                        }
+                        <div class="workspace-menu-divider"></div>
+                        @if (Model.CanShowOrganizationAction)
+                        {
+                            <a class="workspace-menu-item action-link" href="/organization/create">
+                                <span class="workspace-action-icon">+</span>
+                                <span>Add organization</span>
+                            </a>
+                        }
+                        <form method="post" action="/organization/workspaces" class="workspace-menu-form">
+                            @Html.AntiForgeryToken()
+                            <button class="workspace-menu-item action-link" type="submit">
+                                <span class="workspace-action-icon">⊞</span>
+                                <span>View all workspaces</span>
+                            </button>
+                        </form>
+                    </div>
+                </details>
+            }
+            else
+            {
+                <div class="role-switch">
+                    <span class="tenant-mark">@organization.Name[..Math.Min(organization.Name.Length, 2)].ToUpperInvariant()</span>
+                    <span><strong>@organization.Name</strong><small>@organization.Role</small></span>
+                </div>
+            }
             <nav class="side-nav" aria-label="Workspace sections">
                 <a class="side-link" href="/organization">Overview</a>
                 @if (Model.CanViewProjects)
@@ -33,31 +88,10 @@
                     <a class="side-link" href="/organization/projects">Projects</a>
                     <a class="side-link" href="/organization/merospace">MeroSpace</a>
                 }
+                <a class="side-link" href="/organization/docs">Docs</a>
                 <a class="side-link active" href="/organization/members" aria-current="page">Members</a>
-                <a class="side-link" href="/organization#account">My account</a>
+                <a class="side-link" href="/organization/settings">Settings</a>
             </nav>
-            @if (Model.Organizations.Count > 1)
-            {
-                <div class="organization-switcher">
-                    <p class="role-label">SWITCH WORKSPACE</p>
-                    @foreach (var workspace in Model.Organizations.Where(item => item.Id != organization.Id))
-                    {
-                        <form method="post" action="/organization/select">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="organizationId" value="@workspace.Id" />
-                            <button class="organization-switch-button" type="submit">@workspace.Name</button>
-                        </form>
-                    }
-                    <form method="post" action="/organization/workspaces">
-                        @Html.AntiForgeryToken()
-                        <button class="organization-switch-button organization-view-all" type="submit">View all workspaces</button>
-                    </form>
-                </div>
-            }
-            @if (Model.CanShowOrganizationAction)
-            {
-                <a class="btn btn-success btn-sm organization-add-workspace" href="/organization/create">+ Add organization</a>
-            }
             <div class="sidebar-spacer"></div>
             <div class="organization-sidebar-account">
                 <span class="avatar">@((Model.UserName.Length > 0 ? Model.UserName[..1] : "U").ToUpperInvariant())</span>
@@ -228,5 +262,6 @@
             </div>
         </main>
     </div>
+    <script src="~/js/portal.js"></script>
 </body>
 </html>

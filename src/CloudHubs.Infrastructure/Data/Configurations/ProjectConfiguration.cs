@@ -12,6 +12,9 @@ internal sealed class ProjectConfiguration : IEntityTypeConfiguration<Project>
         entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
         entity.Property(x => x.Slug).HasMaxLength(120).IsRequired();
         entity.Property(x => x.TemplateId).HasMaxLength(150).IsRequired();
+        entity.Property(x => x.Documentation).HasColumnType("text").IsRequired(false);
+        entity.Property(x => x.PostmanCollection).HasColumnType("text").IsRequired(false);
+        entity.Property(x => x.EnvironmentVariables).HasColumnType("text").IsRequired(false);
         entity.HasIndex(x => new { x.OrganizationId, x.Slug }).IsUnique();
     }
 }

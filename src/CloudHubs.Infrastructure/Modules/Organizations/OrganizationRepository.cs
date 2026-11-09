@@ -54,6 +54,20 @@ public class OrganizationRepository : IOrganizationRepository
             .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
     }
 
+    public async Task<Organization?> GetByApiKeyAsync(string apiKey, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(apiKey)) return null;
+
+        return await _dbContext.Organizations
+            .Include(x => x.Subscription)
+                .ThenInclude(subscription => subscription!.Plan)
+            .Include(x => x.AccountSubscription)
+                .ThenInclude(subscription => subscription!.Plan)
+            .Include(x => x.Members)
+                .ThenInclude(member => member.User)
+            .FirstOrDefaultAsync(x => x.ApiKey == apiKey.Trim(), cancellationToken);
+    }
+
     public Task<bool> SlugExistsAsync(string slug, Guid? exceptId = null, CancellationToken cancellationToken = default)
     {
         return _dbContext.Organizations.AnyAsync(

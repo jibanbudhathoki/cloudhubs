@@ -431,4 +431,345 @@ public class OrganizationTenantServiceTests
         Assert.True(scaffolder.ScaffoldCalled);
         Assert.Equal(templateId, scaffolder.LastTemplateId);
     }
+
+    private sealed class TestPasswordHasher : CloudHubs.Application.Modules.Users.Interfaces.IPasswordHashingService
+    {
+        public string HashPassword(User user, string password) => "hash_" + password;
+        public bool VerifyPassword(User user, string hashedPassword, string providedPassword) =>
+            hashedPassword == "hash_" + providedPassword;
+    }
+
+    [Fact]
+    public async Task UpdateUserProfileAsync_ValidData_UpdatesUser()
+    {
+        var user = new User { Id = Guid.NewGuid(), Name = "Old Name", Email = "old@example.com" };
+        var userRepo = new UserRepositoryStub { Users = [user] };
+        var tenantService = new OrganizationTenantService(
+            new OrganizationRepositoryStub(),
+            new OrganizationRoleRepositoryStub(),
+            new OrganizationProjectRepositoryStub(),
+            userRepo,
+            new OrganizationPermissionService(new OrganizationRoleRepositoryStub()));
+
+        var updated = await tenantService.UpdateUserProfileAsync(user.Id, "New Name", "new@example.com");
+
+        Assert.Equal("New Name", updated.Name);
+        Assert.Equal("new@example.com", updated.Email);
+    }
+
+    [Fact]
+    public async Task ChangeUserPasswordAsync_ValidPassword_UpdatesHash()
+    {
+        var user = new User { Id = Guid.NewGuid(), Name = "User", PasswordHash = "hash_OldPass1" };
+        var userRepo = new UserRepositoryStub { Users = [user] };
+        var tenantService = new OrganizationTenantService(
+            new OrganizationRepositoryStub(),
+            new OrganizationRoleRepositoryStub(),
+            new OrganizationProjectRepositoryStub(),
+            userRepo,
+            new OrganizationPermissionService(new OrganizationRoleRepositoryStub()));
+
+        var hasher = new TestPasswordHasher();
+        await tenantService.ChangeUserPasswordAsync(
+            user.Id, "OldPass1", "NewSecurePass2", "NewSecurePass2", hasher, 8, true);
+
+        Assert.Equal("hash_NewSecurePass2", user.PasswordHash);
+    }
+
+    [Fact]
+    public async Task UpdateOrganizationProfileAsync_Admin_UpdatesOrganizationDetails()
+    {
+        var organizationId = Guid.NewGuid();
+        var admin = new User { Name = "Admin User", Email = "admin@example.com" };
+        var organization = new Organization
+        {
+            Id = organizationId,
+            Name = "Old Org Name",
+            Email = "old@org.com",
+            Subscription = new Subscription
+            {
+                Status = SubscriptionStatus.Active,
+                Plan = new SubscriptionPlan { HasApiAccess = true, MaxProjects = 10 }
+            }
+        };
+        var membership = new OrganizationMembership
+        {
+            OrganizationId = organizationId,
+            UserId = admin.Id,
+            User = admin,
+            Role = OrganizationMemberRole.Admin
+        };
+        var roleRepo = new OrganizationRoleRepositoryStub { Membership = membership };
+        var orgRepo = new OrganizationRepositoryStub { ExistingOrganization = organization };
+        var tenantService = new OrganizationTenantService(
+            orgRepo,
+            roleRepo,
+            new OrganizationProjectRepositoryStub(),
+            new UserRepositoryStub { Users = [admin] },
+            new OrganizationPermissionService(roleRepo));
+
+        var updated = await tenantService.UpdateOrganizationProfileAsync(
+            organizationId, admin.Id, "Updated Org", "new@org.com", "https://api.updated.com");
+
+        Assert.Equal("Updated Org", updated.Name);
+        Assert.Equal("new@org.com", updated.Email);
+        Assert.Equal("https://api.updated.com", updated.BaseApiUrl);
+    }
+
+    [Fact]
+    public async Task RegenerateApiKeyAsync_GeneratesLiveKey()
+    {
+        var organizationId = Guid.NewGuid();
+        var admin = new User { Name = "Admin User", Email = "admin@example.com" };
+        var organization = new Organization
+        {
+            Id = organizationId,
+            Name = "Org",
+            Subscription = new Subscription
+            {
+                Status = SubscriptionStatus.Active,
+                Plan = new SubscriptionPlan { HasApiAccess = true, MaxProjects = 10 }
+            }
+        };
+        var membership = new OrganizationMembership
+        {
+            OrganizationId = organizationId,
+            UserId = admin.Id,
+            User = admin,
+            Role = OrganizationMemberRole.Owner
+        };
+        var roleRepo = new OrganizationRoleRepositoryStub { Membership = membership };
+        var orgRepo = new OrganizationRepositoryStub { ExistingOrganization = organization };
+        var tenantService = new OrganizationTenantService(
+            orgRepo,
+            roleRepo,
+            new OrganizationProjectRepositoryStub(),
+            new UserRepositoryStub { Users = [admin] },
+            new OrganizationPermissionService(roleRepo));
+
+        var key = await tenantService.RegenerateApiKeyAsync(organizationId, admin.Id);
+
+        Assert.StartsWith("ch_live_cloudhubs_", key);
+        Assert.Equal(key, organization.ApiKey);
+    }
+
+    [Fact]
+    public async Task GetProjectAsync_WithAccess_ReturnsProject()
+    {
+        var organizationId = Guid.NewGuid();
+        var admin = new User { Name = "Admin User", Email = "admin@example.com" };
+        var project = new Project
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = organizationId,
+            Name = "Test Project",
+            Slug = "test-project",
+            Documentation = "# Readme",
+            PostmanCollection = "{\"info\":{\"name\":\"Test\"}}",
+            EnvironmentVariables = "PORT=3000"
+        };
+        var membership = new OrganizationMembership
+        {
+            OrganizationId = organizationId,
+            UserId = admin.Id,
+            User = admin,
+            Role = OrganizationMemberRole.Developer
+        };
+        var roleRepo = new OrganizationRoleRepositoryStub { Membership = membership };
+        var orgRepo = new OrganizationRepositoryStub
+        {
+            ExistingOrganization = new Organization
+            {
+                Id = organizationId,
+                Name = "Org",
+                Subscription = new Subscription
+                {
+                    Status = SubscriptionStatus.Active,
+                    Plan = new SubscriptionPlan { HasApiAccess = true }
+                }
+            }
+        };
+        var projectRepo = new OrganizationProjectRepositoryStub();
+        projectRepo.Projects.Add(project);
+
+        var tenantService = new OrganizationTenantService(
+            orgRepo,
+            roleRepo,
+            projectRepo,
+            new UserRepositoryStub { Users = [admin] },
+            new OrganizationPermissionService(roleRepo));
+
+        var result = await tenantService.GetProjectAsync(organizationId, project.Id, admin.Id);
+
+        Assert.NotNull(result);
+        Assert.Equal("Test Project", result.Name);
+        Assert.Equal("# Readme", result.Documentation);
+        Assert.Equal("PORT=3000", result.EnvironmentVariables);
+    }
+
+    [Fact]
+    public async Task UpdateProjectResourcesAsync_Admin_UpdatesResources()
+    {
+        var organizationId = Guid.NewGuid();
+        var admin = new User { Name = "Admin User", Email = "admin@example.com" };
+        var project = new Project
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = organizationId,
+            Name = "Test Project",
+            Slug = "test-project"
+        };
+        var membership = new OrganizationMembership
+        {
+            OrganizationId = organizationId,
+            UserId = admin.Id,
+            User = admin,
+            Role = OrganizationMemberRole.Admin
+        };
+        var roleRepo = new OrganizationRoleRepositoryStub { Membership = membership };
+        var orgRepo = new OrganizationRepositoryStub
+        {
+            ExistingOrganization = new Organization
+            {
+                Id = organizationId,
+                Name = "Org",
+                Subscription = new Subscription
+                {
+                    Status = SubscriptionStatus.Active,
+                    Plan = new SubscriptionPlan { HasApiAccess = true }
+                }
+            }
+        };
+        var projectRepo = new OrganizationProjectRepositoryStub();
+        projectRepo.Projects.Add(project);
+
+        var tenantService = new OrganizationTenantService(
+            orgRepo,
+            roleRepo,
+            projectRepo,
+            new UserRepositoryStub { Users = [admin] },
+            new OrganizationPermissionService(roleRepo));
+
+        var updated = await tenantService.UpdateProjectResourcesAsync(
+            organizationId,
+            project.Id,
+            admin.Id,
+            "# Updated Docs",
+            "{\"info\":{\"name\":\"Col\"}}",
+            "PORT=8080\nAPI_KEY=xyz");
+
+        Assert.Equal("# Updated Docs", updated.Documentation);
+        Assert.Equal("{\"info\":{\"name\":\"Col\"}}", updated.PostmanCollection);
+        Assert.Equal("PORT=8080\nAPI_KEY=xyz", updated.EnvironmentVariables);
+    }
+
+    [Fact]
+    public async Task CreateOrganizationDocAsync_ValidData_CreatesDoc()
+    {
+        var organizationId = Guid.NewGuid();
+        var admin = new User { Name = "Admin User", Email = "admin@example.com" };
+        var membership = new OrganizationMembership
+        {
+            OrganizationId = organizationId,
+            UserId = admin.Id,
+            User = admin,
+            Role = OrganizationMemberRole.Admin
+        };
+        var roleRepo = new OrganizationRoleRepositoryStub { Membership = membership };
+        var orgRepo = new OrganizationRepositoryStub
+        {
+            ExistingOrganization = new Organization
+            {
+                Id = organizationId,
+                Name = "Org",
+                Subscription = new Subscription
+                {
+                    Status = SubscriptionStatus.Active,
+                    Plan = new SubscriptionPlan { HasApiAccess = true }
+                }
+            }
+        };
+        var docRepo = new OrganizationDocRepositoryStub();
+
+        var tenantService = new OrganizationTenantService(
+            orgRepo,
+            roleRepo,
+            new OrganizationProjectRepositoryStub(),
+            new UserRepositoryStub { Users = [admin] },
+            new OrganizationPermissionService(roleRepo),
+            null,
+            docRepo);
+
+        var doc = await tenantService.CreateOrganizationDocAsync(
+            organizationId,
+            admin.Id,
+            "Payments API",
+            "payments-api",
+            "API",
+            "Payment endpoints",
+            "https://api.payments.com/v1",
+            "ch_live_key_123",
+            "whsec_secret_456",
+            "STRIPE_KEY=xyz",
+            "{\"info\":{\"name\":\"Payments\"}}",
+            "# Payment API Docs");
+
+        Assert.NotNull(doc);
+        Assert.Equal("Payments API", doc.Title);
+        Assert.Equal("payments-api", doc.Slug);
+        Assert.Equal("https://api.payments.com/v1", doc.BaseUrl);
+        Assert.Equal("ch_live_key_123", doc.ApiKey);
+        Assert.Equal("whsec_secret_456", doc.SecretKey);
+        Assert.Single(docRepo.Docs);
+    }
+
+    [Fact]
+    public async Task GetOrganizationDocsAsync_Member_ReturnsAllDocs()
+    {
+        var organizationId = Guid.NewGuid();
+        var dev = new User { Name = "Dev User", Email = "dev@example.com" };
+        var membership = new OrganizationMembership
+        {
+            OrganizationId = organizationId,
+            UserId = dev.Id,
+            User = dev,
+            Role = OrganizationMemberRole.Developer
+        };
+        var roleRepo = new OrganizationRoleRepositoryStub { Membership = membership };
+        var orgRepo = new OrganizationRepositoryStub
+        {
+            ExistingOrganization = new Organization
+            {
+                Id = organizationId,
+                Name = "Org",
+                Subscription = new Subscription
+                {
+                    Status = SubscriptionStatus.Active,
+                    Plan = new SubscriptionPlan { HasApiAccess = true }
+                }
+            }
+        };
+        var docRepo = new OrganizationDocRepositoryStub();
+        docRepo.Docs.Add(new OrganizationDoc
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = organizationId,
+            Title = "Public API",
+            Slug = "public-api"
+        });
+
+        var tenantService = new OrganizationTenantService(
+            orgRepo,
+            roleRepo,
+            new OrganizationProjectRepositoryStub(),
+            new UserRepositoryStub { Users = [dev] },
+            new OrganizationPermissionService(roleRepo),
+            null,
+            docRepo);
+
+        var docs = await tenantService.GetOrganizationDocsAsync(organizationId, dev.Id);
+
+        Assert.Single(docs);
+        Assert.Equal("Public API", docs.First().Title);
+    }
 }

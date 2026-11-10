@@ -211,6 +211,8 @@ public class DocsController(
             OrganizationSlug = organization.Slug,
             OrganizationRole = membership.Role.ToString(),
             OrganizationApiKey = organization.ApiKey,
+            SubscriptionPlanName = plan?.Name ?? "Basic",
+            HasApiAccess = plan?.HasApiAccess ?? false,
             CanViewMembers = canViewMembers,
             CanViewProjects = true,
             IsEdit = false,
@@ -284,6 +286,20 @@ public class DocsController(
             model.EnvironmentVariables = await reader.ReadToEndAsync(cancellationToken);
         }
 
+        var organization = await dbContext.Organizations
+            .Include(o => o.Subscription).ThenInclude(s => s!.Plan)
+            .Include(o => o.AccountSubscription).ThenInclude(s => s!.Plan)
+            .FirstOrDefaultAsync(o => o.Id == organizationId, cancellationToken);
+        var plan = organization?.AccountSubscription?.Plan ?? organization?.Subscription?.Plan;
+        var hasApiAccess = plan?.HasApiAccess ?? false;
+
+        // Package feature enforcement: Only Pro/Custom packages unlock granular member permissions
+        if (!hasApiAccess)
+        {
+            model.IsPublicToMembers = true;
+            model.AllowedMemberUserIds = [];
+        }
+
         try
         {
             var doc = await docsService.CreateDocAsync(
@@ -355,6 +371,8 @@ public class DocsController(
             OrganizationSlug = organization.Slug,
             OrganizationRole = membership.Role.ToString(),
             OrganizationApiKey = organization.ApiKey,
+            SubscriptionPlanName = plan?.Name ?? "Basic",
+            HasApiAccess = plan?.HasApiAccess ?? false,
             CanViewMembers = canViewMembers,
             CanViewProjects = true,
             IsEdit = true,
@@ -435,6 +453,20 @@ public class DocsController(
         {
             using var reader = new StreamReader(envFile.OpenReadStream());
             model.EnvironmentVariables = await reader.ReadToEndAsync(cancellationToken);
+        }
+
+        var organization = await dbContext.Organizations
+            .Include(o => o.Subscription).ThenInclude(s => s!.Plan)
+            .Include(o => o.AccountSubscription).ThenInclude(s => s!.Plan)
+            .FirstOrDefaultAsync(o => o.Id == organizationId, cancellationToken);
+        var plan = organization?.AccountSubscription?.Plan ?? organization?.Subscription?.Plan;
+        var hasApiAccess = plan?.HasApiAccess ?? false;
+
+        // Package feature enforcement: Only Pro/Custom packages unlock granular member permissions
+        if (!hasApiAccess)
+        {
+            model.IsPublicToMembers = true;
+            model.AllowedMemberUserIds = [];
         }
 
         try

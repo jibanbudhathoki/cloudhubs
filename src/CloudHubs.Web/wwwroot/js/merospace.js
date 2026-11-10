@@ -1,8 +1,14 @@
 // MeroSpace Cloud Workspace Client Scripts
-var config = window.MeroSpaceConfig || {};
-var projectId = config.projectId || '';
-var projectTemplate = config.projectTemplate || '';
-var projectName = config.projectName || '';
+var appEl = document.getElementById('merospace-app') || document.body;
+var config = window.MeroSpaceConfig || {
+    projectId: appEl?.getAttribute('data-project-id') || '',
+    projectTemplate: appEl?.getAttribute('data-project-template') || '',
+    projectName: appEl?.getAttribute('data-project-name') || '',
+    token: document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+};
+var projectId = config.projectId || appEl?.getAttribute('data-project-id') || '';
+var projectTemplate = config.projectTemplate || appEl?.getAttribute('data-project-template') || '';
+var projectName = config.projectName || appEl?.getAttribute('data-project-name') || '';
         var openTabs = [];
         var activeTab = null;
         var monacoEditor = null;

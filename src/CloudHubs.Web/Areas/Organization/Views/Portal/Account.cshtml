@@ -23,266 +23,7 @@
     <title>@pageTitle - CloudHubs</title>
     <link rel="stylesheet" href="~/lib/bootstrap/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/portal.css" />
-    <style>
-        .settings-container {
-            max-width: 1160px;
-            margin: 0 auto;
-        }
-
-        /* Category Cards Grid (Hub View) */
-        .settings-cat-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-        .cat-card {
-            background: #ffffff;
-            border: 2px solid #e2e8f0;
-            border-radius: 12px;
-            padding: 22px 24px;
-            cursor: pointer;
-            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            position: relative;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
-            text-decoration: none;
-            color: inherit;
-        }
-        .cat-card:hover {
-            border-color: #059669;
-            transform: translateY(-3px);
-            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.07);
-            color: inherit;
-        }
-        .cat-card-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 16px;
-        }
-        .cat-icon-wrap {
-            width: 48px;
-            height: 48px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            background: #f1f5f9;
-        }
-        .cat-card:hover .cat-icon-wrap {
-            background: #dcfce7;
-        }
-        .cat-badge {
-            font-size: 11px;
-            font-weight: 700;
-            padding: 4px 10px;
-            border-radius: 6px;
-        }
-        .cat-card-title {
-            font-size: 17px;
-            font-weight: 800;
-            color: #0f172a;
-            margin: 0 0 6px 0;
-        }
-        .cat-card-desc {
-            font-size: 13px;
-            color: #64748b;
-            margin: 0 0 18px 0;
-            line-height: 1.5;
-        }
-        .cat-card-footer {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            font-size: 13px;
-            font-weight: 700;
-            color: #059669;
-            padding-top: 14px;
-            border-top: 1px solid #f1f5f9;
-        }
-        .cat-card:hover .cat-card-footer {
-            border-top-color: #bbf7d0;
-            color: #047857;
-        }
-
-
-
-        /* Settings Detail Card */
-        .settings-card {
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            padding: 28px;
-            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
-            margin-bottom: 24px;
-        }
-        .settings-card-header {
-            border-bottom: 1px solid #f1f5f9;
-            padding-bottom: 18px;
-            margin-bottom: 22px;
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            flex-wrap: wrap;
-            gap: 12px;
-        }
-        .settings-card-title {
-            font-size: 18px;
-            font-weight: 800;
-            color: #0f172a;
-            margin: 0;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .settings-card-desc {
-            font-size: 13.5px;
-            color: #64748b;
-            margin: 4px 0 0 0;
-        }
-
-        /* API Box */
-        .api-key-box {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: #0f172a;
-            border: 1px solid #1e293b;
-            border-radius: 8px;
-            padding: 12px 16px;
-            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-            font-size: 13px;
-            color: #38bdf8;
-            word-break: break-all;
-        }
-        .api-key-masked {
-            letter-spacing: 2px;
-        }
-
-        /* Package & Subscription Cards */
-        .package-tier-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            margin-bottom: 28px;
-        }
-        .package-tier-card {
-            background: #ffffff;
-            border: 2px solid #e2e8f0;
-            border-radius: 12px;
-            padding: 24px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            position: relative;
-            transition: all 0.2s ease;
-        }
-        .package-tier-card.featured {
-            border-color: #059669;
-            box-shadow: 0 4px 18px rgba(5, 150, 105, 0.14);
-        }
-        .package-tier-card.current {
-            background: #f8fafc;
-            border-color: #64748b;
-        }
-        .package-tier-card.featured.current {
-            background: #f0fdf4;
-            border-color: #059669;
-        }
-        .package-tag {
-            position: absolute;
-            top: -12px;
-            right: 20px;
-            background: #059669;
-            color: #ffffff;
-            font-size: 11px;
-            font-weight: 700;
-            padding: 3px 10px;
-            border-radius: 20px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .package-price {
-            font-size: 32px;
-            font-weight: 800;
-            color: #0f172a;
-            margin: 10px 0 16px 0;
-            display: flex;
-            align-items: baseline;
-            gap: 4px;
-        }
-        .package-price small {
-            font-size: 13px;
-            font-weight: 500;
-            color: #64748b;
-        }
-        .feature-item {
-            display: flex;
-            align-items: flex-start;
-            gap: 10px;
-            font-size: 13px;
-            margin-bottom: 10px;
-            color: #334155;
-            line-height: 1.45;
-        }
-        .feature-icon-unlocked {
-            color: #059669;
-            font-weight: 800;
-            font-size: 14px;
-        }
-        .feature-icon-locked {
-            color: #cbd5e1;
-            font-size: 14px;
-        }
-
-        /* Comparison Table */
-        .unlock-matrix-table {
-            width: 100%;
-            border-collapse: separate;
-            border-spacing: 0;
-            border: 1px solid #e2e8f0;
-            border-radius: 10px;
-            overflow: hidden;
-            font-size: 13px;
-        }
-        .unlock-matrix-table th {
-            background: #f8fafc;
-            padding: 12px 16px;
-            font-weight: 700;
-            color: #1e293b;
-            border-bottom: 2px solid #e2e8f0;
-        }
-        .unlock-matrix-table td {
-            padding: 12px 16px;
-            border-bottom: 1px solid #f1f5f9;
-            color: #334155;
-        }
-        .unlock-matrix-table tr:last-child td {
-            border-bottom: 0;
-        }
-
-        .code-preview-block {
-            background: #0f172a;
-            color: #f8fafc;
-            border-radius: 8px;
-            padding: 14px 18px;
-            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-            font-size: 12.5px;
-            overflow-x: auto;
-            position: relative;
-        }
-        .btn-copy-code {
-            position: absolute;
-            top: 8px;
-            right: 8px;
-            font-size: 11px;
-            padding: 3px 8px;
-        }
-    </style>
+    <link rel="stylesheet" href="~/css/settings.css" />
 </head>
 <body>
     <a class="skip-link" href="#main-content">Skip to main content</a>
@@ -360,6 +101,7 @@
                     {
                         <a class="side-link" href="/organization/projects">Projects</a>
                         <a class="side-link" href="/organization/merospace">MeroSpace</a>
+                        <a class="side-link" href="/organization/tracker">Tracker</a>
                     }
                     <a class="side-link" href="/organization/docs">Docs</a>
                     @if (Model.CanViewMembers)
@@ -475,14 +217,14 @@
                                         }
                                         else
                                         {
-                                            <span class="cat-badge bg-secondary-subtle text-secondary border">Pro / Custom</span>
+                                            <span class="cat-badge bg-warning text-dark border">🔒 Pro Feature (Locked)</span>
                                         }
                                     </div>
                                     <h2 class="cat-card-title">Platform API &amp; Dashboard</h2>
                                     <p class="cat-card-desc">Master API keys, build your custom company dashboard, download Postman specs, and sync docs.</p>
                                 </div>
                                 <div class="cat-card-footer">
-                                    <span>@(Model.IsProOrCustomPlan || Model.HasApiAccess ? "REST API Enabled" : "Pro Plan Required")</span>
+                                    <span>@(Model.IsProOrCustomPlan || Model.HasApiAccess ? "REST API Enabled ✓" : "🔒 Locked · Upgrade to Unlock")</span>
                                     <span>Open Settings &rarr;</span>
                                 </div>
                             </a>
@@ -628,130 +370,204 @@
                                     </div>
                                     @if (Model.IsProOrCustomPlan || Model.HasApiAccess)
                                     {
-                                        <span class="badge bg-success px-3 py-2">✓ API Access Active (@Model.SubscriptionPlan)</span>
+                                        <span class="badge bg-success px-3 py-2">✓ API Access Unlocked (@Model.SubscriptionPlan)</span>
                                     }
                                     else
                                     {
-                                        <span class="badge bg-warning text-dark px-3 py-2">🔒 Pro / Custom Plan Required</span>
+                                        <span class="badge bg-warning text-dark px-3 py-2">🔒 Locked (Pro / Custom Feature)</span>
                                     }
                                 </div>
 
                                 @if (!Model.IsProOrCustomPlan && !Model.HasApiAccess)
                                 {
-                                    <div class="alert alert-warning d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4">
-                                        <div>
-                                            <strong>🔒 Pro Feature:</strong> The Organization Platform API is reserved for organizations on a <strong>Pro</strong> or <strong>Custom</strong> plan.
-                                        </div>
-                                        <form method="post" action="/organization/settings/upgrade-plan" class="d-inline">
-                                            @Html.AntiForgeryToken()
-                                            <input type="hidden" name="planName" value="Pro" />
-                                            <button type="submit" class="btn btn-sm btn-dark">🚀 Instant Upgrade to Pro ($49/mo) &amp; Unlock API</button>
-                                        </form>
-                                    </div>
-                                }
-
-                                <!-- Master Organization API Key Card -->
-                                <div class="p-3 bg-light rounded border mb-4">
-                                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
-                                        <div class="fw-bold small text-uppercase text-secondary">MASTER ORGANIZATION API KEY</div>
-                                        <div class="d-flex align-items-center gap-2">
-                                            <button type="button" class="btn btn-sm btn-outline-secondary py-1" onclick="toggleApiKeyVisibility()" id="btn-toggle-key">👁️ Show Key</button>
-                                            <button type="button" class="btn btn-sm btn-outline-primary py-1" onclick="copyMasterKey()" id="btn-copy-key">📋 Copy Key</button>
-                                        </div>
-                                    </div>
-                                    <div class="api-key-box mb-2">
-                                        <span id="api-key-display" class="api-key-masked">
-                                            @(string.IsNullOrWhiteSpace(Model.OrganizationApiKey) ? "No API key generated yet" : "••••••••••••••••••••••••••••••••••••••••••••")
-                                        </span>
-                                        <span id="api-key-real" style="display: none;">@Model.OrganizationApiKey</span>
-                                    </div>
-                                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                                        <small class="text-muted" style="font-size: 11px;">Authenticate requests with <code>X-Api-Key: &lt;key&gt;</code> or <code>Authorization: Bearer &lt;key&gt;</code> header.</small>
-                                        @if (organization is not null)
-                                        {
-                                            <form method="post" action="/organization/account/regenerate-api-key" onsubmit="return confirm('Regenerating this key will invalidate any active runners or custom dashboards using the old key. Proceed?');" class="d-inline">
-                                                @Html.AntiForgeryToken()
-                                                <input type="hidden" name="organizationId" value="@organization.Id" />
-                                                <button type="submit" class="btn btn-link text-danger btn-sm p-0 text-decoration-none">🔄 Regenerate API Key</button>
-                                            </form>
-                                        }
-                                    </div>
-                                </div>
-
-                                <!-- Platform Base URL -->
-                                <div class="mb-4">
-                                    <label class="form-label fw-bold small">PLATFORM BASE API ENDPOINT</label>
-                                    <div class="input-group">
-                                        <span class="input-group-text bg-light font-monospace small">BASE URL</span>
-                                        <input class="form-control font-monospace bg-white" id="platform-base-url" value="@($"{Context.Request.Scheme}://{Context.Request.Host}/api/organizations/{organization?.Id}")" readonly />
-                                        <button class="btn btn-outline-secondary" type="button" onclick="copyBaseUrl()" id="btn-copy-base">Copy</button>
-                                    </div>
-                                </div>
-
-                                <!-- Direct Action Cards: Docs Hub & Move to Docs -->
-                                <div class="row g-3 mb-4">
-                                    <div class="col-md-6">
-                                        <div class="border rounded p-3 h-100 bg-white d-flex flex-column justify-content-between shadow-sm">
+                                    <!-- LOCKED STATE: UPGRADE REQUIRED BANNER -->
+                                    <div class="p-4 rounded-3 border-2 border-warning bg-warning-subtle text-dark mb-4 shadow-sm">
+                                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
                                             <div>
-                                                <h3 class="h6 fw-bold mb-1 text-primary">⚡ View Organization API Hub (Docs)</h3>
-                                                <p class="text-muted small mb-3">Browse all 11 endpoints with interactive live parameter schemas, sample response payloads, and dashboard starter code.</p>
+                                                <h2 class="h5 fw-bold mb-1">🔒 Platform REST API &amp; Custom Dashboard is Locked</h2>
+                                                <p class="mb-0 small text-secondary">
+                                                    Your workspace is currently on the <strong>@Model.SubscriptionPlan</strong> plan. The Master Organization API Key and custom dashboard integrations are unlocked exclusively for <strong>Pro</strong> ($49/mo) and <strong>Custom</strong> packages.
+                                                </p>
                                             </div>
                                             <div>
-                                                <a class="btn btn-primary btn-sm w-100" href="/organization/docs/api-hub">
-                                                    ⚡ Open Organization API Hub &rarr;
-                                                </a>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="border rounded p-3 h-100 bg-white d-flex flex-column justify-content-between shadow-sm">
-                                            <div>
-                                                <h3 class="h6 fw-bold mb-1 text-success">📖 Move to Docs &amp; Set Member Access</h3>
-                                                <p class="text-muted small mb-3">Import this Platform API directly into your workspace Docs catalog and specify which team members can view it.</p>
-                                            </div>
-                                            <div>
-                                                <form method="post" action="/organization/docs/import-platform-api-to-docs">
+                                                <form method="post" action="/organization/settings/upgrade-plan">
                                                     @Html.AntiForgeryToken()
-                                                    <button type="submit" class="btn btn-outline-success btn-sm w-100" title="Move to Docs and configure member permissions">
-                                                        📖 Move to Docs &amp; Set Member Access &rarr;
+                                                    <input type="hidden" name="planName" value="Pro" />
+                                                    <button type="submit" class="btn btn-success fw-bold px-4 py-2">
+                                                        🚀 Upgrade to Pro ($49/mo) &amp; Unlock All API Features
                                                     </button>
                                                 </form>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
 
-                                <div class="d-flex align-items-center gap-2">
-                                    <a class="btn btn-outline-secondary btn-sm" href="/organization/docs/download-org-postman">
-                                        🚀 Download Postman Collection (.json)
-                                    </a>
-                                </div>
+                                    <!-- Locked Mock Credentials Preview -->
+                                    <div class="p-3 bg-light rounded border mb-4 opacity-75">
+                                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                                            <div class="fw-bold small text-uppercase text-secondary">MASTER ORGANIZATION API KEY</div>
+                                            <span class="badge bg-secondary">🔒 Locked</span>
+                                        </div>
+                                        <div class="api-key-box mb-2" style="background: #1e293b; color: #94a3b8;">
+                                            <span>ch_live_•••••••••••••••••••••••••••••••• (Locked)</span>
+                                        </div>
+                                        <small class="text-danger" style="font-size: 11px;">🔒 Master API key generation and usage is locked on the Basic plan.</small>
+                                    </div>
+
+                                    <!-- Locked Base URL -->
+                                    <div class="mb-4 opacity-75">
+                                        <label class="form-label fw-bold small text-muted">PLATFORM BASE API ENDPOINT</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text bg-light font-monospace small">BASE URL</span>
+                                            <input class="form-control font-monospace bg-light" value="@($"{Context.Request.Scheme}://{Context.Request.Host}/api/organizations/{organization?.Id}")" readonly disabled />
+                                            <button class="btn btn-outline-secondary" type="button" disabled>🔒 Locked</button>
+                                        </div>
+                                        <div class="form-text text-muted" style="font-size: 11px;">External API calls to this base URL will return HTTP 401 Unauthorized without an active Pro or Custom package.</div>
+                                    </div>
+
+                                    <!-- Locked Action Cards -->
+                                    <div class="row g-3 mb-4">
+                                        <div class="col-md-6">
+                                            <div class="border rounded p-3 h-100 bg-light d-flex flex-column justify-content-between opacity-75">
+                                                <div>
+                                                    <h3 class="h6 fw-bold mb-1 text-secondary">⚡ View Organization API Hub (Docs)</h3>
+                                                    <p class="text-muted small mb-3">Browse all 11 endpoints with interactive live parameter schemas, sample response payloads, and dashboard starter code.</p>
+                                                </div>
+                                                <div>
+                                                    <button class="btn btn-secondary btn-sm w-100" disabled>
+                                                        🔒 Locked &middot; Requires Pro Package
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="border rounded p-3 h-100 bg-light d-flex flex-column justify-content-between opacity-75">
+                                                <div>
+                                                    <h3 class="h6 fw-bold mb-1 text-secondary">📖 Move to Docs &amp; Set Member Access</h3>
+                                                    <p class="text-muted small mb-3">Import this Platform API directly into your workspace Docs catalog and specify which team members can view it.</p>
+                                                </div>
+                                                <div>
+                                                    <button class="btn btn-secondary btn-sm w-100" disabled>
+                                                        🔒 Locked &middot; Requires Pro Package
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="d-flex align-items-center gap-2">
+                                        <button class="btn btn-outline-secondary btn-sm" disabled>
+                                            🔒 Download Postman Collection (Requires Pro)
+                                        </button>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <!-- UNLOCKED STATE: FULL PLATFORM API TOOLS -->
+                                    <!-- Master Organization API Key Card -->
+                                    <div class="p-3 bg-light rounded border mb-4">
+                                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                                            <div class="fw-bold small text-uppercase text-secondary">MASTER ORGANIZATION API KEY</div>
+                                            <div class="d-flex align-items-center gap-2">
+                                                <button type="button" class="btn btn-sm btn-outline-secondary py-1" onclick="toggleApiKeyVisibility()" id="btn-toggle-key">👁️ Show Key</button>
+                                                <button type="button" class="btn btn-sm btn-outline-primary py-1" onclick="copyMasterKey()" id="btn-copy-key">📋 Copy Key</button>
+                                            </div>
+                                        </div>
+                                        <div class="api-key-box mb-2">
+                                            <span id="api-key-display" class="api-key-masked">
+                                                @(string.IsNullOrWhiteSpace(Model.OrganizationApiKey) ? "No API key generated yet" : "••••••••••••••••••••••••••••••••••••••••••••")
+                                            </span>
+                                            <span id="api-key-real" style="display: none;">@Model.OrganizationApiKey</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                            <small class="text-muted" style="font-size: 11px;">Authenticate requests with <code>X-Api-Key: &lt;key&gt;</code> or <code>Authorization: Bearer &lt;key&gt;</code> header.</small>
+                                            @if (organization is not null)
+                                            {
+                                                <form method="post" action="/organization/account/regenerate-api-key" onsubmit="return confirm('Regenerating this key will invalidate any active runners or custom dashboards using the old key. Proceed?');" class="d-inline">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="organizationId" value="@organization.Id" />
+                                                    <button type="submit" class="btn btn-link text-danger btn-sm p-0 text-decoration-none">🔄 Regenerate API Key</button>
+                                                </form>
+                                            }
+                                        </div>
+                                    </div>
+
+                                    <!-- Platform Base URL -->
+                                    <div class="mb-4">
+                                        <label class="form-label fw-bold small">PLATFORM BASE API ENDPOINT</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text bg-light font-monospace small">BASE URL</span>
+                                            <input class="form-control font-monospace bg-white" id="platform-base-url" value="@($"{Context.Request.Scheme}://{Context.Request.Host}/api/organizations/{organization?.Id}")" readonly />
+                                            <button class="btn btn-outline-secondary" type="button" onclick="copyBaseUrl()" id="btn-copy-base">Copy</button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Direct Action Cards: Docs Hub & Move to Docs -->
+                                    <div class="row g-3 mb-4">
+                                        <div class="col-md-6">
+                                            <div class="border rounded p-3 h-100 bg-white d-flex flex-column justify-content-between shadow-sm">
+                                                <div>
+                                                    <h3 class="h6 fw-bold mb-1 text-primary">⚡ View Organization API Hub (Docs)</h3>
+                                                    <p class="text-muted small mb-3">Browse all 11 endpoints with interactive live parameter schemas, sample response payloads, and dashboard starter code.</p>
+                                                </div>
+                                                <div>
+                                                    <a class="btn btn-primary btn-sm w-100" href="/organization/docs/api-hub">
+                                                        ⚡ Open Organization API Hub &rarr;
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="border rounded p-3 h-100 bg-white d-flex flex-column justify-content-between shadow-sm">
+                                                <div>
+                                                    <h3 class="h6 fw-bold mb-1 text-success">📖 Move to Docs &amp; Set Member Access</h3>
+                                                    <p class="text-muted small mb-3">Import this Platform API directly into your workspace Docs catalog and specify which team members can view it.</p>
+                                                </div>
+                                                <div>
+                                                    <form method="post" action="/organization/docs/import-platform-api-to-docs">
+                                                        @Html.AntiForgeryToken()
+                                                        <button type="submit" class="btn btn-outline-success btn-sm w-100" title="Move to Docs and configure member permissions">
+                                                            📖 Move to Docs &amp; Set Member Access &rarr;
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="d-flex align-items-center gap-2">
+                                        <a class="btn btn-outline-secondary btn-sm" href="/organization/docs/download-org-postman">
+                                            🚀 Download Postman Collection (.json)
+                                        </a>
+                                    </div>
+                                }
                             </div>
 
-                            <!-- Integration Code Examples -->
-                            <section class="settings-card">
-                                <div class="settings-card-header">
-                                    <div>
-                                        <h2 class="settings-card-title">💻 Quick Integration Snippets</h2>
-                                        <p class="settings-card-desc">Call your organization endpoints from your own frontend or backend applications.</p>
+                            @if (Model.IsProOrCustomPlan || Model.HasApiAccess)
+                            {
+                                <!-- Integration Code Examples (Unlocked for Pro/Custom) -->
+                                <section class="settings-card">
+                                    <div class="settings-card-header">
+                                        <div>
+                                            <h2 class="settings-card-title">💻 Quick Integration Snippets</h2>
+                                            <p class="settings-card-desc">Call your organization endpoints from your own frontend or backend applications.</p>
+                                        </div>
                                     </div>
-                                </div>
 
-                                <div class="mb-3">
-                                    <div class="fw-bold small text-muted mb-2">cURL: Fetch Organization Dashboard Metrics</div>
-                                    <div class="code-preview-block">
-                                        <button class="btn btn-sm btn-outline-light btn-copy-code" onclick="copySnippet('snippet-curl')">Copy</button>
-                                        <pre id="snippet-curl" class="m-0 text-white"><code>curl -X GET "@($"{Context.Request.Scheme}://{Context.Request.Host}/api/organizations/{organization?.Id}/overview")" \
+                                    <div class="mb-3">
+                                        <div class="fw-bold small text-muted mb-2">cURL: Fetch Organization Dashboard Metrics</div>
+                                        <div class="code-preview-block">
+                                            <button class="btn btn-sm btn-outline-light btn-copy-code" onclick="copySnippet('snippet-curl')">Copy</button>
+                                            <pre id="snippet-curl" class="m-0 text-white"><code>curl -X GET "@($"{Context.Request.Scheme}://{Context.Request.Host}/api/organizations/{organization?.Id}/overview")" \
   -H "X-Api-Key: @(Model.OrganizationApiKey ?? "YOUR_API_KEY")" \
   -H "Accept: application/json"</code></pre>
+                                        </div>
                                     </div>
-                                </div>
 
-                                <div>
-                                    <div class="fw-bold small text-muted mb-2">JavaScript / React (Fetch API): Custom Dashboard Hook</div>
-                                    <div class="code-preview-block">
-                                        <button class="btn btn-sm btn-outline-light btn-copy-code" onclick="copySnippet('snippet-js')">Copy</button>
-                                        <pre id="snippet-js" class="m-0 text-white"><code>const fetchOrgMetrics = async () => {
+                                    <div>
+                                        <div class="fw-bold small text-muted mb-2">JavaScript / React (Fetch API): Custom Dashboard Hook</div>
+                                        <div class="code-preview-block">
+                                            <button class="btn btn-sm btn-outline-light btn-copy-code" onclick="copySnippet('snippet-js')">Copy</button>
+                                            <pre id="snippet-js" class="m-0 text-white"><code>const fetchOrgMetrics = async () => {
   const res = await fetch("@($"{Context.Request.Scheme}://{Context.Request.Host}/api/organizations/{organization?.Id}/overview")", {
     headers: {
       "X-Api-Key": "@(Model.OrganizationApiKey ?? "YOUR_API_KEY")",
@@ -762,9 +578,21 @@
   console.log("Projects:", data.projectsCount, "Members:", data.membersCount);
   return data;
 };</code></pre>
+                                        </div>
                                     </div>
-                                </div>
-                            </section>
+                                </section>
+                            }
+                            else
+                            {
+                                <!-- Locked Code Snippets Notice -->
+                                <section class="settings-card bg-light border-dashed">
+                                    <div class="text-center py-3">
+                                        <span style="font-size: 28px;">🔒</span>
+                                        <h3 class="h6 fw-bold mt-2 mb-1 text-muted">Integration Snippets are Locked</h3>
+                                        <p class="text-muted small mb-0">Pre-configured cURL, React, and Node.js custom dashboard starter snippets are unlocked when you upgrade to a Pro package.</p>
+                                    </div>
+                                </section>
+                            }
                         }
                         else if (activeCategory == "subscription")
                         {
@@ -1159,63 +987,6 @@
 
     <script src="~/lib/bootstrap/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/portal.js"></script>
-    <script>
-        // API Key Visibility Toggle
-        var isKeyVisible = false;
-        function toggleApiKeyVisibility() {
-            var display = document.getElementById('api-key-display');
-            var real = document.getElementById('api-key-real') ? document.getElementById('api-key-real').innerText.trim() : '';
-            var btn = document.getElementById('btn-toggle-key');
-            if (!real) return;
-
-            if (isKeyVisible) {
-                display.innerText = '••••••••••••••••••••••••••••••••••••••••••••';
-                display.classList.add('api-key-masked');
-                btn.innerText = '👁️ Show Key';
-                isKeyVisible = false;
-            } else {
-                display.innerText = real;
-                display.classList.remove('api-key-masked');
-                btn.innerText = '🙈 Hide Key';
-                isKeyVisible = true;
-            }
-        }
-
-        // Copy Master API Key
-        function copyMasterKey() {
-            var real = document.getElementById('api-key-real') ? document.getElementById('api-key-real').innerText.trim() : '';
-            if (real) {
-                navigator.clipboard.writeText(real).then(function() {
-                    var btn = document.getElementById('btn-copy-key');
-                    var orig = btn.innerText;
-                    btn.innerText = '✓ Copied!';
-                    setTimeout(function() { btn.innerText = orig; }, 1600);
-                });
-            }
-        }
-
-        // Copy Base URL
-        function copyBaseUrl() {
-            var input = document.getElementById('platform-base-url');
-            if (input && input.value) {
-                navigator.clipboard.writeText(input.value).then(function() {
-                    var btn = document.getElementById('btn-copy-base');
-                    var orig = btn.innerText;
-                    btn.innerText = '✓ Copied!';
-                    setTimeout(function() { btn.innerText = orig; }, 1600);
-                });
-            }
-        }
-
-        // Copy Code Snippets
-        function copySnippet(elementId) {
-            var el = document.getElementById(elementId);
-            if (el) {
-                navigator.clipboard.writeText(el.innerText).then(function() {
-                    alert('Code snippet copied to clipboard!');
-                });
-            }
-        }
-    </script>
+    <script src="~/js/settings.js"></script>
 </body>
 </html>

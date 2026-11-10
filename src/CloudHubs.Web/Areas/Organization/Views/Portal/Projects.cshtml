@@ -85,6 +85,7 @@
                 <a class="side-link" href="/organization">Overview</a>
                 <a class="side-link active" href="/organization/projects" aria-current="page">Projects</a>
                 <a class="side-link" href="/organization/merospace">MeroSpace</a>
+                <a class="side-link" href="/organization/tracker">Tracker</a>
                 <a class="side-link" href="/organization/docs">Docs</a>
                 @if (Model.CanViewMembers)
                 {
@@ -279,23 +280,9 @@
         </main>
     </div>
 
-    <script>
-        document.getElementById('search-projects')?.addEventListener('input', function() {
-            var q = this.value.toLowerCase().trim();
-            var rows = document.querySelectorAll('.project-row');
-            var visible = 0;
-            rows.forEach(function(row) {
-                var name = row.dataset.name || '';
-                var tpl = row.dataset.template || '';
-                var match = !q || name.includes(q) || tpl.includes(q);
-                row.style.display = match ? '' : 'none';
-                if (match) visible++;
-            });
-            var countEl = document.getElementById('projects-count');
-            if (countEl) countEl.innerText = visible;
-        });
-    </script>
+    <script src="~/lib/bootstrap/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/portal.js"></script>
+    <script src="~/js/projects.js"></script>
 </body>
 </html>
 

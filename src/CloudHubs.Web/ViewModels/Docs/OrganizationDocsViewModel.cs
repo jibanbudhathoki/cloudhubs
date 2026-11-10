@@ -81,6 +81,8 @@ public sealed class OrganizationDocEditorViewModel
     public string OrganizationSlug { get; set; } = string.Empty;
     public string OrganizationRole { get; set; } = string.Empty;
     public string? OrganizationApiKey { get; set; }
+    public string SubscriptionPlanName { get; set; } = "Basic";
+    public bool HasApiAccess { get; set; }
 
     public bool IsEdit { get; set; }
     public Guid? DocId { get; set; }

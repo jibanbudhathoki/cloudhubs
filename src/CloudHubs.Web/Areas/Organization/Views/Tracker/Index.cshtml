@@ -1,0 +1,718 @@
+@using CloudHubs.Domain.Enums
+@model CloudHubs.Web.ViewModels.Tracker.ProjectTrackerViewModel
+@{
+    Layout = null;
+    ViewData["Title"] = "Project Tracker & Agile Management";
+}
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Project Tracker - @Model.OrganizationName - CloudHubs</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/portal.css" />
+    <link rel="stylesheet" href="~/css/tracker.css" />
+</head>
+<body>
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+    <div class="admin-shell">
+        <aside class="admin-sidebar organization-sidebar">
+            <a class="brand" href="/organization">
+                <span class="brand-mark">C</span>
+                <span><strong>CloudHubs</strong><small>ORGANIZATION</small></span>
+            </a>
+            <p class="role-label">CURRENT ORGANIZATION</p>
+            @if (Model.Organizations.Count > 1)
+            {
+                <details class="workspace-top-dropdown">
+                    <summary class="role-switch workspace-top-trigger" title="Click to switch workspace">
+                        <span class="tenant-mark">@Model.OrganizationName[..Math.Min(Model.OrganizationName.Length, 2)].ToUpperInvariant()</span>
+                        <span class="workspace-meta">
+                            <strong>@Model.OrganizationName</strong>
+                            <small>@Model.OrganizationRole</small>
+                        </span>
+                        <span class="workspace-switch-badge">Switch ▾</span>
+                    </summary>
+                    <div class="workspace-top-menu">
+                        <div class="workspace-menu-label">CURRENT WORKSPACE</div>
+                        <div class="workspace-menu-item current">
+                            <span class="tenant-mark-sm">@Model.OrganizationName[..Math.Min(Model.OrganizationName.Length, 2)].ToUpperInvariant()</span>
+                            <span class="workspace-menu-name">@Model.OrganizationName</span>
+                            <span class="workspace-check">✓</span>
+                        </div>
+                        @if (Model.Organizations.Count > 1)
+                        {
+                            <div class="workspace-menu-divider"></div>
+                            <div class="workspace-menu-label">SWITCH WORKSPACE</div>
+                            @foreach (var org in Model.Organizations.Where(item => item.Id != Model.OrganizationId))
+                            {
+                                <form method="post" action="/organization/select" class="workspace-menu-form">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="organizationId" value="@org.Id" />
+                                    <button class="workspace-menu-item" type="submit">
+                                        <span class="tenant-mark-sm">@org.Name[..Math.Min(org.Name.Length, 2)].ToUpperInvariant()</span>
+                                        <span class="workspace-menu-name">@org.Name</span>
+                                    </button>
+                                </form>
+                            }
+                        }
+                    </div>
+                </details>
+            }
+            else
+            {
+                <div class="role-switch">
+                    <span class="tenant-mark">@Model.OrganizationName[..Math.Min(Model.OrganizationName.Length, 2)].ToUpperInvariant()</span>
+                    <span><strong>@Model.OrganizationName</strong><small>@Model.OrganizationRole</small></span>
+                </div>
+            }
+
+            <nav class="side-nav" aria-label="Workspace sections">
+                <a class="side-link" href="/organization">Overview</a>
+                @if (Model.CanViewProjects)
+                {
+                    <a class="side-link" href="/organization/projects">Projects</a>
+                    <a class="side-link" href="/organization/merospace">MeroSpace</a>
+                }
+                <a class="side-link active" href="/organization/tracker" aria-current="page">Tracker</a>
+                <a class="side-link" href="/organization/docs">Docs</a>
+                @if (Model.CanViewMembers)
+                {
+                    <a class="side-link" href="/organization/members">Members</a>
+                }
+                <a class="side-link" href="/organization/settings">Settings</a>
+            </nav>
+
+            <div class="sidebar-spacer"></div>
+            <div class="organization-sidebar-account">
+                <span class="avatar">@((Model.UserName.Length > 0 ? Model.UserName[..1] : "U").ToUpperInvariant())</span>
+                <span><strong>@Model.UserName</strong><small>@Model.UserEmail</small></span>
+            </div>
+        </aside>
+
+        <main class="admin-main" id="main-content" tabindex="-1">
+            <header class="topbar">
+                <div class="breadcrumbs">
+                    <a href="/organization">Workspace</a>
+                    <span>/</span>
+                    <a href="/organization">@Model.OrganizationName</a>
+                    <span>/</span>
+                    <strong>Project Tracker &amp; Sprints</strong>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge @(Model.IsProOrCustom ? "bg-success" : "bg-light text-dark border") px-3 py-2">
+                        📦 Active Plan: <strong>@Model.SubscriptionPlanName</strong>
+                    </span>
+                    @if (!Model.IsProOrCustom)
+                    {
+                        <a href="/organization/settings/subscription" class="btn btn-sm btn-warning fw-bold text-dark">
+                            ⚡ Upgrade to Pro
+                        </a>
+                    }
+                </div>
+            </header>
+
+            <div class="content-wrap" style="padding: 24px 32px;">
+                <div class="tracker-shell">
+
+                <!-- Title Header -->
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+                    <div>
+                        <h1 class="h3 fw-bold mb-1">🎯 Project Tracker &amp; Agile Management</h1>
+                        <p class="text-muted small m-0">Jira &amp; Redmine-grade issue tracking, sprint velocity, bug boards, and time metrics for @Model.OrganizationName.</p>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <!-- View Toggle -->
+                        <div class="btn-group me-2" role="group">
+                            <a href="?view=kanban@(Model.SelectedProjectId.HasValue ? $"&projectId={Model.SelectedProjectId}" : "")"
+                               class="btn btn-sm @(Model.ActiveView == "kanban" ? "btn-dark fw-bold" : "btn-outline-secondary")">
+                                📋 Kanban Board
+                            </a>
+                            <a href="?view=list@(Model.SelectedProjectId.HasValue ? $"&projectId={Model.SelectedProjectId}" : "")"
+                               class="btn btn-sm @(Model.ActiveView == "list" ? "btn-dark fw-bold" : "btn-outline-secondary")">
+                                📄 Table List
+                            </a>
+                        </div>
+                        <button type="button" class="btn btn-success fw-bold px-3 py-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#createIssueModal">
+                            + Create Ticket
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Alert Messages -->
+                @if (TempData["SuccessMessage"] != null)
+                {
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        <strong>✓ Success:</strong> @TempData["SuccessMessage"]
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                }
+                @if (TempData["ErrorMessage"] != null)
+                {
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <strong>⚠️ Notice:</strong> @TempData["ErrorMessage"]
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                }
+
+                <!-- Sprint Metrics Cards -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Total Tickets <span>📊</span></div>
+                        <div class="stat-value">@Model.Metrics.TotalIssues</div>
+                        <div class="stat-sub">Across all workspace hubs</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Open / Backlog <span>📥</span></div>
+                        <div class="stat-value text-primary">@Model.Metrics.OpenIssues</div>
+                        <div class="stat-sub">Waiting for execution</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">In Progress <span>⚡</span></div>
+                        <div class="stat-value text-warning">@Model.Metrics.InProgressIssues</div>
+                        <div class="stat-sub">Currently under development</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">In Review <span>🔍</span></div>
+                        <div class="stat-value text-info">@Model.Metrics.InReviewIssues</div>
+                        <div class="stat-sub">Testing &amp; code review</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Completed <span>✅</span></div>
+                        <div class="stat-value text-success">@Model.Metrics.DoneIssues</div>
+                        <div class="stat-sub">@Model.Metrics.CompletionPercentage% sprint completion</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Hours Logged <span>⏱️</span></div>
+                        <div class="stat-value">@Model.Metrics.TotalSpentHours<small class="fs-6 text-muted"> / @Model.Metrics.TotalEstimatedHours h</small></div>
+                        <div class="stat-sub">Actual spent vs estimated</div>
+                    </div>
+                </div>
+
+                <!-- Filters Bar -->
+                <form method="get" class="filter-bar">
+                    <input type="hidden" name="view" value="@Model.ActiveView" />
+                    <div class="filter-group">
+                        <!-- Project Selector -->
+                        <select name="projectId" class="form-select form-select-sm" style="min-width: 170px;" onchange="this.form.submit()">
+                            <option value="">📁 All Projects (@Model.Projects.Count)</option>
+                            @foreach (var proj in Model.Projects)
+                            {
+                                <option value="@proj.Id" selected="@(Model.SelectedProjectId == proj.Id ? "selected" : null)">@proj.Name</option>
+                            }
+                        </select>
+
+                        <!-- Priority Selector -->
+                        <select name="priority" class="form-select form-select-sm" style="min-width: 140px;" onchange="this.form.submit()">
+                            <option value="">🎯 All Priorities</option>
+                            <option value="@((int)IssuePriority.Critical)" selected="@(Model.SelectedPriority == IssuePriority.Critical ? "selected" : null)">🔴 Critical</option>
+                            <option value="@((int)IssuePriority.High)" selected="@(Model.SelectedPriority == IssuePriority.High ? "selected" : null)">🟠 High</option>
+                            <option value="@((int)IssuePriority.Medium)" selected="@(Model.SelectedPriority == IssuePriority.Medium ? "selected" : null)">🟡 Medium</option>
+                            <option value="@((int)IssuePriority.Low)" selected="@(Model.SelectedPriority == IssuePriority.Low ? "selected" : null)">🟢 Low</option>
+                        </select>
+
+                        <!-- Assignee Selector -->
+                        <select name="assigneeId" class="form-select form-select-sm" style="min-width: 150px;" onchange="this.form.submit()">
+                            <option value="">👤 All Assignees</option>
+                            @foreach (var member in Model.OrganizationMembers)
+                            {
+                                <option value="@member.Id" selected="@(Model.SelectedAssigneeId == member.Id ? "selected" : null)">@(member.Name ?? member.Email)</option>
+                            }
+                        </select>
+
+                        <!-- Search -->
+                        <div class="input-group input-group-sm" style="min-width: 220px;">
+                            <input type="text" name="search" class="form-control" placeholder="Search key, title, notes..." value="@Model.Search" />
+                            <button class="btn btn-outline-secondary" type="submit">Search</button>
+                        </div>
+
+                        @if (Model.SelectedProjectId.HasValue || Model.SelectedPriority.HasValue || Model.SelectedAssigneeId.HasValue || !string.IsNullOrWhiteSpace(Model.Search))
+                        {
+                            <a href="/organization/tracker?view=@Model.ActiveView" class="btn btn-sm btn-link text-muted text-decoration-none">✕ Clear</a>
+                        }
+                    </div>
+
+                    <div class="text-muted small">
+                        Showing <strong>@Model.Issues.Count</strong> ticket@(Model.Issues.Count == 1 ? "" : "s")
+                    </div>
+                </form>
+
+                <!-- Plan Gating Notice if on Basic package trying to use Kanban -->
+                @if (!Model.IsProOrCustom && Model.ActiveView == "kanban")
+                {
+                    <div class="pro-locked-overlay">
+                        <div>
+                            <h2 class="h6 fw-bold mb-1 text-dark">🔒 Interactive Agile Kanban Board is reserved for Pro / Custom Plans</h2>
+                            <p class="small text-muted mb-0">The Basic plan includes Redmine-style tabular ticket management. Upgrade to Pro ($49/mo) to unlock real-time drag-and-drop Kanban workflow, team comment discussions, and sprint analytics.</p>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <a href="?view=list" class="btn btn-sm btn-outline-dark">Use Table View</a>
+                            <a href="/organization/settings/subscription" class="btn btn-sm btn-success fw-bold">Upgrade to Pro ($49/mo)</a>
+                        </div>
+                    </div>
+                }
+
+                @if (Model.ActiveView == "kanban")
+                {
+                    <!-- KANBAN BOARD VIEW -->
+                    <div class="kanban-board">
+                        @{
+                            var columns = new[]
+                            {
+                                (IssueStatus.Backlog, "📥 Backlog", "text-secondary"),
+                                (IssueStatus.ToDo, "📋 To Do", "text-primary"),
+                                (IssueStatus.InProgress, "⚡ In Progress", "text-warning"),
+                                (IssueStatus.InReview, "🔍 In Review", "text-info"),
+                                (IssueStatus.Done, "✅ Done", "text-success")
+                            };
+                        }
+
+                        @foreach (var (colStatus, colTitle, colClass) in columns)
+                        {
+                            var colIssues = Model.Issues.Where(x => x.Status == colStatus).ToList();
+                            <div class="kanban-col" data-status="@((int)colStatus)">
+                                <div class="kanban-col-header">
+                                    <div class="kanban-col-title @colClass">
+                                        @colTitle
+                                        <span class="col-badge">@colIssues.Count</span>
+                                    </div>
+                                    <button type="button" class="btn btn-sm btn-link text-muted p-0 text-decoration-none fw-bold" onclick="openCreateWithStatus(@((int)colStatus))" title="Quick add ticket to @colStatus">
+                                        +
+                                    </button>
+                                </div>
+
+                                <div class="kanban-cards-container" id="col-container-@((int)colStatus)" ondragover="allowDrop(event)" ondrop="handleDrop(event, @((int)colStatus))">
+                                    @foreach (var issue in colIssues)
+                                    {
+                                        <div class="kanban-card" id="card-@issue.Id" draggable="true" ondragstart="handleDragStart(event, '@issue.Id')" onclick="viewIssueDetail('@issue.Id')">
+                                            <div class="card-top">
+                                                <span class="card-key">@issue.IssueKey</span>
+                                                <div class="d-flex align-items-center gap-1">
+                                                    <!-- Type Badge -->
+                                                    @switch (issue.IssueType)
+                                                    {
+                                                        case IssueType.Bug:
+                                                            <span class="type-badge type-bug">🐞 Bug</span>
+                                                            break;
+                                                        case IssueType.Feature:
+                                                            <span class="type-badge type-feature">⚡ Feature</span>
+                                                            break;
+                                                        case IssueType.Epic:
+                                                            <span class="type-badge type-epic">🚀 Epic</span>
+                                                            break;
+                                                        case IssueType.Improvement:
+                                                            <span class="type-badge type-improvement">🛠 Impro</span>
+                                                            break;
+                                                        default:
+                                                            <span class="type-badge type-task">📋 Task</span>
+                                                            break;
+                                                    }
+
+                                                    <!-- Priority Badge -->
+                                                    @switch (issue.Priority)
+                                                    {
+                                                        case IssuePriority.Critical:
+                                                            <span class="priority-badge p-critical" title="Critical Priority">🔴</span>
+                                                            break;
+                                                        case IssuePriority.High:
+                                                            <span class="priority-badge p-high" title="High Priority">🟠</span>
+                                                            break;
+                                                        case IssuePriority.Medium:
+                                                            <span class="priority-badge p-medium" title="Medium Priority">🟡</span>
+                                                            break;
+                                                        default:
+                                                            <span class="priority-badge p-low" title="Low Priority">🟢</span>
+                                                            break;
+                                                    }
+                                                </div>
+                                            </div>
+
+                                            <div class="card-title">@issue.Title</div>
+                                            <div class="card-project">@issue.ProjectName</div>
+
+                                            <div class="card-bottom">
+                                                <div class="card-assignee">
+                                                    @if (!string.IsNullOrEmpty(issue.AssigneeName))
+                                                    {
+                                                        <span class="avatar-tiny" title="Assigned to @issue.AssigneeName">@issue.AssigneeName[..1].ToUpperInvariant()</span>
+                                                        <span class="small text-truncate" style="max-width: 90px;">@issue.AssigneeName</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="text-muted small"><em>Unassigned</em></span>
+                                                    }
+                                                </div>
+                                                <div class="card-meta">
+                                                    @if (issue.CommentsCount > 0)
+                                                    {
+                                                        <span title="@issue.CommentsCount comments">💬 @issue.CommentsCount</span>
+                                                    }
+                                                    @if (issue.EstimatedHours.HasValue)
+                                                    {
+                                                        <span title="@issue.SpentHours h logged / @issue.EstimatedHours h estimated">⏱️ @(issue.SpentHours ?? 0)/@(issue.EstimatedHours)h</span>
+                                                    }
+                                                    <!-- Quick Column Shift buttons -->
+                                                    <div class="card-actions-quick" onclick="event.stopPropagation()">
+                                                        @if ((int)issue.Status > 0)
+                                                        {
+                                                            <button type="button" class="btn-shift" onclick="moveStatus('@issue.Id', @((int)issue.Status - 1))" title="Move Left">‹</button>
+                                                        }
+                                                        @if ((int)issue.Status < 4)
+                                                        {
+                                                            <button type="button" class="btn-shift" onclick="moveStatus('@issue.Id', @((int)issue.Status + 1))" title="Move Right">›</button>
+                                                        }
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <!-- TABLE LIST VIEW (Available on ALL plans, including Basic) -->
+                    <div class="tracker-table-card">
+                        <table class="table table-tracker mb-0">
+                            <thead>
+                                <tr>
+                                    <th style="width: 100px;">Key</th>
+                                    <th style="width: 110px;">Type</th>
+                                    <th>Title &amp; Project</th>
+                                    <th style="width: 150px;">Status</th>
+                                    <th style="width: 110px;">Priority</th>
+                                    <th style="width: 160px;">Assignee</th>
+                                    <th style="width: 130px;">Due Date</th>
+                                    <th style="width: 120px;">Hours</th>
+                                    <th style="width: 100px; text-align: right;">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (Model.Issues.Count == 0)
+                                {
+                                    <tr>
+                                        <td colspan="9" class="text-center py-5 text-muted">
+                                            <div class="fs-1 mb-2">🎯</div>
+                                            <p class="fw-bold mb-1">No tickets match the selected filters</p>
+                                            <p class="small text-muted mb-3">Click "+ Create Ticket" to start tracking project tasks, bugs, or milestones.</p>
+                                            <button type="button" class="btn btn-sm btn-success fw-bold" data-bs-toggle="modal" data-bs-target="#createIssueModal">
+                                                + Create First Ticket
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                                @foreach (var issue in Model.Issues)
+                                {
+                                    <tr>
+                                        <td>
+                                            <span class="card-key">@issue.IssueKey</span>
+                                        </td>
+                                        <td>
+                                            @switch (issue.IssueType)
+                                            {
+                                                case IssueType.Bug:
+                                                    <span class="type-badge type-bug">🐞 Bug</span>
+                                                    break;
+                                                case IssueType.Feature:
+                                                    <span class="type-badge type-feature">⚡ Feature</span>
+                                                    break;
+                                                case IssueType.Epic:
+                                                    <span class="type-badge type-epic">🚀 Epic</span>
+                                                    break;
+                                                case IssueType.Improvement:
+                                                    <span class="type-badge type-improvement">🛠 Impro</span>
+                                                    break;
+                                                default:
+                                                    <span class="type-badge type-task">📋 Task</span>
+                                                    break;
+                                            }
+                                        </td>
+                                        <td>
+                                            <a href="javascript:void(0)" onclick="viewIssueDetail('@issue.Id')" class="fw-bold text-dark text-decoration-none d-block">
+                                                @issue.Title
+                                            </a>
+                                            <span class="card-project mt-1">@issue.ProjectName</span>
+                                        </td>
+                                        <td>
+                                            <!-- Inline Status Changer -->
+                                            <select class="form-select form-select-sm" onchange="moveStatus('@issue.Id', this.value)">
+                                                <option value="0" selected="@(issue.Status == IssueStatus.Backlog ? "selected" : null)">📥 Backlog</option>
+                                                <option value="1" selected="@(issue.Status == IssueStatus.ToDo ? "selected" : null)">📋 To Do</option>
+                                                <option value="2" selected="@(issue.Status == IssueStatus.InProgress ? "selected" : null)">⚡ In Progress</option>
+                                                <option value="3" selected="@(issue.Status == IssueStatus.InReview ? "selected" : null)">🔍 In Review</option>
+                                                <option value="4" selected="@(issue.Status == IssueStatus.Done ? "selected" : null)">✅ Done</option>
+                                            </select>
+                                        </td>
+                                        <td>
+                                            @switch (issue.Priority)
+                                            {
+                                                case IssuePriority.Critical:
+                                                    <span class="priority-badge p-critical">🔴 Critical</span>
+                                                    break;
+                                                case IssuePriority.High:
+                                                    <span class="priority-badge p-high">🟠 High</span>
+                                                    break;
+                                                case IssuePriority.Medium:
+                                                    <span class="priority-badge p-medium">🟡 Medium</span>
+                                                    break;
+                                                default:
+                                                    <span class="priority-badge p-low">🟢 Low</span>
+                                                    break;
+                                            }
+                                        </td>
+                                        <td>
+                                            @if (!string.IsNullOrEmpty(issue.AssigneeName))
+                                            {
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <span class="avatar-tiny">@issue.AssigneeName[..1].ToUpperInvariant()</span>
+                                                    <span class="small">@issue.AssigneeName</span>
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted small"><em>Unassigned</em></span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <span class="small @(issue.DueDate.HasValue && issue.DueDate.Value < DateTime.UtcNow && issue.Status != IssueStatus.Done ? "text-danger fw-bold" : "text-muted")">
+                                                @(issue.DueDate?.ToString("yyyy-MM-dd") ?? "—")
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="small text-muted font-monospace">
+                                                @(issue.SpentHours ?? 0)h / @(issue.EstimatedHours.HasValue ? $"{issue.EstimatedHours}h" : "—")
+                                            </span>
+                                        </td>
+                                        <td style="text-align: right;">
+                                            <button type="button" class="btn btn-sm btn-outline-secondary py-1 px-2" onclick="viewIssueDetail('@issue.Id')">
+                                                Inspect
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- CREATE ISSUE MODAL -->
+    <div class="modal fade" id="createIssueModal" tabindex="-1" aria-labelledby="createIssueModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <form method="post" action="/organization/tracker/create">
+                    @Html.AntiForgeryToken()
+                    <div class="modal-header">
+                        <h5 class="modal-title fw-bold" id="createIssueModalLabel">🎯 Create New Ticket</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body p-4">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small">Target Project *</label>
+                                <select name="ProjectId" class="form-select" required>
+                                    <option value="">-- Choose Project --</option>
+                                    @foreach (var proj in Model.Projects)
+                                    {
+                                        <option value="@proj.Id" selected="@(Model.SelectedProjectId == proj.Id ? "selected" : null)">@proj.Name</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold small">Issue Type *</label>
+                                <select name="IssueType" class="form-select" required>
+                                    <option value="@((int)IssueType.Task)">📋 Task</option>
+                                    <option value="@((int)IssueType.Bug)">🐞 Bug</option>
+                                    <option value="@((int)IssueType.Feature)">⚡ Feature</option>
+                                    <option value="@((int)IssueType.Improvement)">🛠 Improvement</option>
+                                    <option value="@((int)IssueType.Epic)">🚀 Epic</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold small">Priority *</label>
+                                <select name="Priority" class="form-select" required>
+                                    <option value="@((int)IssuePriority.Medium)" selected>🟡 Medium</option>
+                                    <option value="@((int)IssuePriority.Critical)">🔴 Critical</option>
+                                    <option value="@((int)IssuePriority.High)">🟠 High</option>
+                                    <option value="@((int)IssuePriority.Low)">🟢 Low</option>
+                                </select>
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label fw-bold small">Ticket Title / Summary *</label>
+                                <input type="text" name="Title" class="form-control" placeholder="e.g. Implement OAuth JWT refresh flow for customer portal" required />
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small">Assignee (Team Member)</label>
+                                <select name="AssigneeId" class="form-select">
+                                    <option value="">-- Unassigned --</option>
+                                    @foreach (var m in Model.OrganizationMembers)
+                                    {
+                                        <option value="@m.Id">@(m.Name ?? m.Email)</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold small">Due Date</label>
+                                <input type="date" name="DueDate" class="form-control" />
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold small">Est. Hours</label>
+                                <input type="number" step="0.5" min="0" name="EstimatedHours" class="form-control" placeholder="e.g. 4.5" />
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label fw-bold small">Description &amp; Acceptance Criteria</label>
+                                <textarea name="Description" class="form-control" rows="4" placeholder="Detail specifications, steps to reproduce, or acceptance criteria..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-success fw-bold px-4">Create Ticket</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ISSUE DETAIL & DISCUSSION MODAL -->
+    <div class="modal fade" id="issueDetailModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header bg-light">
+                    <div class="d-flex align-items-center gap-2">
+                        <span id="detail-key" class="card-key fs-6">KEY-0</span>
+                        <span id="detail-type-badge" class="type-badge type-task">Task</span>
+                        <span id="detail-priority-badge" class="priority-badge p-medium">Medium</span>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="row g-4">
+                        <!-- Left 8 cols: Ticket Content & Comments -->
+                        <div class="col-lg-8">
+                            <h2 id="detail-title" class="h4 fw-bold mb-3 text-dark"></h2>
+                            <div class="mb-4">
+                                <h6 class="fw-bold small text-muted text-uppercase mb-2">Description &amp; Criteria</h6>
+                                <div id="detail-desc" class="p-3 bg-light rounded border text-break" style="min-height: 90px; white-space: pre-wrap; font-size: 14px;">
+                                </div>
+                            </div>
+
+                            <!-- Comments Section -->
+                            <div class="pt-3 border-top">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h3 class="h6 fw-bold mb-0">💬 Team Discussion &amp; Notes</h3>
+                                    <span id="detail-comments-count" class="badge bg-secondary">0 comments</span>
+                                </div>
+
+                                <div id="comments-thread" class="d-flex flex-direction-column gap-3 mb-4" style="display: flex; flex-direction: column;">
+                                    <!-- Rendered dynamically -->
+                                </div>
+
+                                <!-- Add Comment Box -->
+                                @if (Model.IsProOrCustom)
+                                {
+                                    <div class="card p-3 border">
+                                        <label class="form-label fw-bold small text-muted mb-1">Add a comment / update:</label>
+                                        <textarea id="new-comment-text" class="form-control mb-2" rows="3" placeholder="Share updates, blockers, or test results with the team..."></textarea>
+                                        <div class="d-flex justify-content-end">
+                                            <button type="button" class="btn btn-sm btn-success fw-bold px-3" onclick="submitComment()">
+                                                Post Comment
+                                            </button>
+                                        </div>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="card p-3 bg-light text-center border-dashed">
+                                        <p class="text-muted small mb-1">🔒 Team discussions and comment threads require a Pro or Custom package.</p>
+                                        <a href="/organization/settings/subscription" class="btn btn-sm btn-warning fw-bold text-dark mx-auto" style="width: max-content;">
+                                            Upgrade to Pro to Comment
+                                        </a>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+
+                        <!-- Right 4 cols: Attributes & Audit History -->
+                        <div class="col-lg-4 border-start">
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-muted text-uppercase">Status</label>
+                                <select id="detail-status-select" class="form-select form-select-sm" onchange="updateDetailStatus(this.value)">
+                                    <option value="0">📥 Backlog</option>
+                                    <option value="1">📋 To Do</option>
+                                    <option value="2">⚡ In Progress</option>
+                                    <option value="3">🔍 In Review</option>
+                                    <option value="4">✅ Done</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-muted text-uppercase">Project</label>
+                                <div id="detail-project-name" class="fw-bold small text-dark"></div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-muted text-uppercase">Assignee</label>
+                                <div id="detail-assignee" class="small text-dark"></div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-muted text-uppercase">Reporter</label>
+                                <div id="detail-reporter" class="small text-muted"></div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-muted text-uppercase">Due Date</label>
+                                <div id="detail-due-date" class="small text-dark"></div>
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="form-label small fw-bold text-muted text-uppercase">Time Tracking</label>
+                                <div class="p-2 bg-light rounded border">
+                                    <div class="d-flex justify-content-between small text-muted mb-1">
+                                        <span>Spent: <strong id="detail-spent-hours" class="text-dark">0h</strong></span>
+                                        <span>Est: <strong id="detail-est-hours" class="text-dark">—</strong></span>
+                                    </div>
+                                    <div class="progress" style="height: 6px;">
+                                        <div id="detail-hours-bar" class="progress-bar bg-success" role="progressbar" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Audit Activity Log -->
+                            <div>
+                                <h6 class="fw-bold small text-muted text-uppercase mb-2">📜 Activity History</h6>
+                                <div id="detail-activities-list" class="small text-muted" style="max-height: 220px; overflow-y: auto;">
+                                </div>
+                            </div>
+
+                            <!-- Delete Option -->
+                            <div class="mt-4 pt-3 border-top text-end">
+                                <form id="delete-issue-form" method="post" action="" onsubmit="return confirm('Are you sure you want to delete this ticket?');">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                        🗑 Delete Ticket
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="~/lib/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/tracker.js"></script>
+</body>
+</html>
+

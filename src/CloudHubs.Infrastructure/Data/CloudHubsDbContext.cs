@@ -24,6 +24,9 @@ public class CloudHubsDbContext : DbContext
     public DbSet<PlatformSettings> PlatformSettings => Set<PlatformSettings>();
     public DbSet<OrganizationDoc> OrganizationDocs => Set<OrganizationDoc>();
     public DbSet<OrganizationDocAccess> OrganizationDocAccesses => Set<OrganizationDocAccess>();
+    public DbSet<ProjectIssue> ProjectIssues => Set<ProjectIssue>();
+    public DbSet<ProjectIssueComment> ProjectIssueComments => Set<ProjectIssueComment>();
+    public DbSet<ProjectIssueActivity> ProjectIssueActivities => Set<ProjectIssueActivity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

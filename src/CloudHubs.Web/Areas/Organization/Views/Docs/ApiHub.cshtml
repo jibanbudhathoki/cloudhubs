@@ -15,111 +15,7 @@
     <title>Organization REST API &amp; Custom Dashboard - CloudHubs</title>
     <link rel="stylesheet" href="~/lib/bootstrap/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/portal.css" />
-    <style>
-        .api-feature-card {
-            background: #ffffff;
-            border: 1px solid var(--line);
-            border-radius: 8px;
-            padding: 24px;
-            margin-bottom: 24px;
-        }
-        .cred-strip {
-            background: #f8fafc;
-            border: 1px solid var(--line);
-            border-radius: 8px;
-            padding: 18px;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 16px;
-            margin-bottom: 24px;
-        }
-        .cred-label {
-            font-size: 11px;
-            font-weight: 700;
-            color: #64748b;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 6px;
-        }
-        .endpoint-row {
-            border: 1px solid #e2e8f0;
-            border-radius: 6px;
-            margin-bottom: 12px;
-            background: #ffffff;
-            overflow: hidden;
-            transition: border-color 0.15s ease;
-        }
-        .endpoint-row:hover {
-            border-color: #cbd5e1;
-        }
-        .endpoint-header {
-            padding: 12px 16px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            cursor: pointer;
-            background: #fafafa;
-        }
-        .endpoint-method {
-            font-family: monospace;
-            font-size: 12px;
-            font-weight: 700;
-            padding: 3px 8px;
-            border-radius: 4px;
-            min-width: 60px;
-            text-align: center;
-            display: inline-block;
-        }
-        .method-get { background: #dbeafe; color: #1e40af; }
-        .method-post { background: #dcfce7; color: #15803d; }
-        .method-put { background: #fef3c7; color: #b45309; }
-        .method-del { background: #fee2e2; color: #b91c1c; }
-
-        .endpoint-path {
-            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-            font-size: 13px;
-            font-weight: 600;
-            color: #0f172a;
-            margin-left: 10px;
-        }
-        .endpoint-body {
-            padding: 16px;
-            border-top: 1px solid #f1f5f9;
-            background: #ffffff;
-        }
-        .code-box {
-            background: #0f172a;
-            color: #e2e8f0;
-            padding: 14px;
-            border-radius: 6px;
-            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-            font-size: 12px;
-            line-height: 1.5;
-            overflow-x: auto;
-            margin-bottom: 12px;
-        }
-        .plan-badge {
-            font-size: 12px;
-            font-weight: 700;
-            padding: 4px 10px;
-            border-radius: 6px;
-        }
-        .plan-badge-pro { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
-        .plan-badge-custom { background: #ede9fe; color: #6d28d9; border: 1px solid #ddd6fe; }
-        .plan-badge-basic { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
-
-        .pricing-tier {
-            border: 2px solid #e2e8f0;
-            border-radius: 8px;
-            padding: 20px;
-            height: 100%;
-            transition: all 0.2s ease;
-        }
-        .pricing-tier.featured {
-            border-color: #059669;
-            background: #f0fdf4;
-        }
-    </style>
+    <link rel="stylesheet" href="~/css/docs.css" />
 </head>
 <body>
     <a class="skip-link" href="#main-content">Skip to main content</a>
@@ -193,6 +89,7 @@
                 <a class="side-link" href="/organization">Overview</a>
                 <a class="side-link" href="/organization/projects">Projects</a>
                 <a class="side-link" href="/organization/merospace">MeroSpace</a>
+                <a class="side-link" href="/organization/tracker">Tracker</a>
                 <a class="side-link active" href="/organization/docs" aria-current="page">Docs &amp; API</a>
                 @if (Model.CanViewMembers)
                 {
@@ -685,38 +582,7 @@ for p in projects:
 
     <script src="~/lib/bootstrap/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/portal.js"></script>
-    <script>
-        function copyValue(id, btn) {
-            var el = document.getElementById(id);
-            if (el && el.value) {
-                navigator.clipboard.writeText(el.value).then(function() {
-                    var orig = btn.innerText; btn.innerText = '✓'; setTimeout(() => btn.innerText = orig, 1200);
-                });
-            }
-        }
-
-        function copyPassword(id, btn) {
-            var el = document.getElementById(id);
-            if (el && el.value) {
-                navigator.clipboard.writeText(el.value).then(function() {
-                    var orig = btn.innerText; btn.innerText = '✓'; setTimeout(() => btn.innerText = orig, 1200);
-                });
-            }
-        }
-
-        function toggleKeyVisibility(id, btn) {
-            var el = document.getElementById(id);
-            if (el) {
-                if (el.type === 'password') {
-                    el.type = 'text';
-                    btn.innerText = '🙈';
-                } else {
-                    el.type = 'password';
-                    btn.innerText = '👁';
-                }
-            }
-        }
-    </script>
+    <script src="~/js/docs.js"></script>
 </body>
 </html>
 

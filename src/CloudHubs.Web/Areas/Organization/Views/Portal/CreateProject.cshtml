@@ -181,54 +181,10 @@
         </main>
     </div>
 
-    <script>
-        (function() {
-            var nameInput = document.getElementById('project-name');
-            var slugInput = document.getElementById('project-slug');
-            var rootPathInput = document.getElementById('project-rootpath');
-            var orgSlug = '@Model.OrganizationSlug';
-            var userEditedSlug = false;
-
-            if (slugInput && slugInput.value.trim().length > 0) {
-                userEditedSlug = true;
-            }
-
-            slugInput.addEventListener('input', function() {
-                userEditedSlug = true;
-                updateRootPath();
-            });
-
-            nameInput.addEventListener('input', function() {
-                if (!userEditedSlug) {
-                    var slug = nameInput.value.toLowerCase().trim()
-                        .replace(/[^a-z0-9_-]+/g, '-')
-                        .replace(/^-+|-+$/g, '');
-                    slugInput.value = slug;
-                    updateRootPath();
-                }
-            });
-
-            function updateRootPath() {
-                var currentSlug = slugInput.value.trim() || 'project-slug';
-                if (!rootPathInput.dataset.custom) {
-                    rootPathInput.placeholder = 'projects/' + orgSlug + '/' + currentSlug;
-                }
-            }
-
-            rootPathInput.addEventListener('input', function() {
-                rootPathInput.dataset.custom = rootPathInput.value.trim().length > 0 ? 'true' : '';
-            });
-
-            // Template card radio styling
-            var templateCards = document.querySelectorAll('.template-card');
-            templateCards.forEach(function(card) {
-                card.addEventListener('click', function() {
-                    templateCards.forEach(function(c) { c.classList.remove('active'); });
-                    card.classList.add('active');
-                });
-            });
-        })();
-    </script>
+    <div id="project-create-meta" data-org-slug="@Model.OrganizationSlug"></div>
+    <script src="~/lib/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/portal.js"></script>
+    <script src="~/js/projects.js"></script>
 </body>
 </html>
 

@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="~/lib/bootstrap/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/merospace.css" asp-append-version="true" />
 </head>
-<body>
+<body id="merospace-app" data-project-id="@Model.ProjectId" data-project-template="@Model.TemplateId" data-project-name="@Model.ProjectName">
     <div class="merospace-shell">
         <!-- Title Bar -->
         <header class="merospace-titlebar">
@@ -510,14 +510,6 @@ Type 'help' for terminal commands or click '▶ Run' to start real-time executio
 
     @Html.AntiForgeryToken()
 
-    <script>
-        window.MeroSpaceConfig = {
-            projectId: '@Model.ProjectId',
-            projectTemplate: '@Model.TemplateId',
-            projectName: '@Model.ProjectName',
-            token: document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
-        };
-    </script>
     <!-- Monaco Editor Loader -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
     <script src="~/js/merospace.js" asp-append-version="true"></script>

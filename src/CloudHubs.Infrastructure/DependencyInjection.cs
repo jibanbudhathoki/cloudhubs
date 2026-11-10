@@ -4,6 +4,7 @@ using CloudHubs.Application.Modules.Docs.Interfaces;
 using CloudHubs.Application.Modules.Organizations.Interfaces;
 using CloudHubs.Application.Modules.Platform.Interfaces;
 using CloudHubs.Application.Modules.Projects.Interfaces;
+using CloudHubs.Application.Modules.ProjectTracker.Interfaces;
 using CloudHubs.Application.Modules.Subscriptions.Interfaces;
 using CloudHubs.Application.Modules.Users.Interfaces;
 using CloudHubs.Infrastructure.Data;
@@ -11,6 +12,7 @@ using CloudHubs.Infrastructure.Modules.Docs;
 using CloudHubs.Infrastructure.Modules.Organizations;
 using CloudHubs.Infrastructure.Modules.Platform;
 using CloudHubs.Infrastructure.Modules.Projects;
+using CloudHubs.Infrastructure.Modules.ProjectTracker;
 using CloudHubs.Infrastructure.Modules.Subscriptions;
 using CloudHubs.Infrastructure.Modules.Users;
 using CloudHubs.Infrastructure.Services;
@@ -35,6 +37,7 @@ public static class DependencyInjection
         services.AddScoped<IOrganizationProjectRepository, OrganizationProjectRepository>();
         services.AddScoped<IProjectScaffolder, ProjectScaffolder>();
         services.AddScoped<IProjectFileService, ProjectFileService>();
+        services.AddScoped<IProjectTrackerService, ProjectTrackerService>();
         services.AddSingleton<IProjectProcessRunner, ProjectProcessRunner>();
 
         services.AddScoped<OrganizationCreatedNotificationSender>();

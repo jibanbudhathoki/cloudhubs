@@ -1,0 +1,189 @@
+/* CloudHubs - Project Resources & Workspace Styles */
+
+.res-hero {
+    background: #fff;
+    border: 1px solid var(--line, #e2e8f0);
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin-bottom: 20px;
+}
+
+.res-nav-tabs {
+    border-bottom: 2px solid var(--line, #e2e8f0);
+    gap: 8px;
+    margin-bottom: 20px;
+}
+
+.res-nav-tabs .nav-link {
+    color: #5a6660;
+    border: 0;
+    border-bottom: 3px solid transparent;
+    padding: 10px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.res-nav-tabs .nav-link:hover {
+    color: #17674f;
+}
+
+.res-nav-tabs .nav-link.active {
+    color: #17674f;
+    border-bottom-color: #17674f;
+    background: transparent;
+}
+
+.res-card {
+    background: #fff;
+    border: 1px solid var(--line, #e2e8f0);
+    border-radius: 8px;
+    padding: 24px;
+    margin-bottom: 20px;
+}
+
+.code-box {
+    background: #1e2924;
+    color: #e2ede8;
+    padding: 16px;
+    border-radius: 6px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    overflow-x: auto;
+    position: relative;
+}
+
+.env-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.env-table th {
+    font-size: 11px;
+    font-weight: 700;
+    color: #8c9891;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--line, #e2e8f0);
+    background: #fbfdfc;
+}
+
+.env-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--line, #e2e8f0);
+    font-size: 12px;
+    vertical-align: middle;
+}
+
+.env-key {
+    font-family: ui-monospace, monospace;
+    font-weight: 600;
+    color: #17674f;
+}
+
+.env-val {
+    font-family: ui-monospace, monospace;
+    color: #3b4540;
+    word-break: break-all;
+}
+
+.env-val.masked {
+    font-family: text-security-disc, -webkit-small-control, monospace;
+    letter-spacing: 2px;
+}
+
+.postman-req-badge {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 6px;
+    border-radius: 4px;
+    width: 55px;
+    display: inline-block;
+    text-align: center;
+}
+
+.badge-get {
+    background: #e3f2fd;
+    color: #1565c0;
+}
+
+.badge-post {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.badge-put {
+    background: #fff8e1;
+    color: #f57f17;
+}
+
+.badge-delete {
+    background: #ffebee;
+    color: #c62828;
+}
+
+.badge-patch {
+    background: #f3e5f5;
+    color: #6a1b9a;
+}
+
+.docs-markdown {
+    line-height: 1.6;
+    color: #2b3631;
+    font-size: 13px;
+}
+
+.docs-markdown h1,
+.docs-markdown h2,
+.docs-markdown h3 {
+    color: #17674f;
+    margin-top: 20px;
+    margin-bottom: 10px;
+    font-weight: 700;
+}
+
+.docs-markdown h1 {
+    font-size: 20px;
+    border-bottom: 1px solid var(--line, #e2e8f0);
+    padding-bottom: 8px;
+}
+
+.docs-markdown h2 {
+    font-size: 16px;
+}
+
+.docs-markdown h3 {
+    font-size: 14px;
+}
+
+.docs-markdown pre {
+    background: #f4f8f5;
+    border: 1px solid var(--line, #e2e8f0);
+    padding: 12px;
+    border-radius: 6px;
+    overflow-x: auto;
+}
+
+.docs-markdown code {
+    font-family: ui-monospace, monospace;
+    color: #17674f;
+    background: #e9f3ee;
+    padding: 2px 5px;
+    border-radius: 3px;
+    font-size: 12px;
+}
+
+.share-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    background: #e9f3ee;
+    color: #17674f;
+    font-size: 12px;
+    font-weight: 600;
+}
